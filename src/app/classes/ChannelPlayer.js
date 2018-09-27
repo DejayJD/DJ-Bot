@@ -2,14 +2,18 @@
  *  Created By JD.Francis on 9/26/18
  */
 class ChannelPlayer {
-    currentSong; // Current song uri + start time
-    channelName; // name of channel
-    songHistory; // ["uri1", "uri2", "uri3"] -- List of previous songs
-    currentDevices; // ["device_id1", "device_id2"] -- list of which devices to distribute
-
-    // -- will be in the order that djs will take turns in
-    djQueue; // ["User 1", "User 2", "User 3"]
-    constructor(channelName) {
+    constructor(channelId, channelName) {
+        this.channelId = channelId;
+        this.channelName = channelName;
+        this.currentSong = {  // Current song uri + start time
+            uri: 'spotify:track:2fTjkEmR1t7J4WICztg136',
+            startTime: new Date()
+        };
+        this.songHistory = []; // ["uri1", "uri2", "uri3"] -- List of previous songs
+        this.currentDevices = [];
+        this.users = []; //-- list of users - users with active = true will receive sync updates
+        this.djQueue = [];// ["User 1", "User 2", "User 3"]
+        // -- djQueue will be in the order that djs will take turns in
     }
 
     broadcast() {
