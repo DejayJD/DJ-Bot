@@ -2,11 +2,16 @@
  *  Created By JD.Francis on 9/26/18
  */
 
-const ChannelPlayer = require('./ChannelPlayer');
-const _ = require('lodash');
-const randToken = require('rand-token');
+import {ChannelPlayer} from "./ChannelPlayer";
+import * as _ from "lodash";
+import {randToken} from 'rand-token';
 
-class App {
+export class App {
+
+    channelLimit:number;
+    channels : ChannelPlayer[] = [];
+    users : ChannelPlayer[] = [];
+    spotifyApi:any;
     constructor(channelLimit = 100) {
         this.channelLimit = channelLimit;
         this.channels = [];
@@ -22,7 +27,8 @@ class App {
     createChannel(channel, initialUsers = []) {
         if (!this.channelExists(channel.id)) {
             let newChannel = new ChannelPlayer(channel['id'], channel['name']);
-            newChannel.users = this.channels.push(...initialUsers);
+            newChannel.users.push(...initialUsers)
+            newChannel.users = [];
             this.channels.push(newChannel);
         }
         else {
@@ -84,6 +90,3 @@ class App {
         return user;
     }
 }
-
-
-module.exports = App;

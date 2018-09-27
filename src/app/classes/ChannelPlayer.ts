@@ -1,7 +1,16 @@
 /*
  *  Created By JD.Francis on 9/26/18
  */
-class ChannelPlayer {
+export class ChannelPlayer {
+
+    channelId: number;
+    channelName:string;
+    currentSong:any;
+    songHistory:any[];
+    currentDevices:any[];
+    users:any[];
+    djQueue:any[];
+
     constructor(channelId, channelName) {
         this.channelId = channelId;
         this.channelName = channelName;
@@ -45,11 +54,9 @@ class ChannelPlayer {
         //TODO: find dj reference and move them to new position
     }
 
-    getUsersNextSong() {
-        let queue = this.getCurrentDJ().playlist;
-        queue = this.cycleFirstArrayItem(queue);
-        let newSong = queue[0];
-        return newSong;
+    // Moves current song to the back of the queue, gets the first one in the queue after that.
+    getUsersNextSong(user) {
+        return this.cycleFirstArrayItem(user.queue);
     }
 
     cycleFirstArrayItem(array) {
@@ -63,5 +70,3 @@ class ChannelPlayer {
         return this.djQueue[0];
     }
 }
-
-module.exports = ChannelPlayer;

@@ -1,6 +1,12 @@
+
+//Import environment variables
 require('./config.js');
-let App = require('./src/app/classes/App.js');
+
+//Setup a new application object
+let App = require('./dist/src/app/classes/App.js');
 let djApp = new App();
+
+//Pass that application along to the spotify and slack portions
 //Init Slack
 require('./src/bots/slack/init.js')(djApp);
 //Init Spotify

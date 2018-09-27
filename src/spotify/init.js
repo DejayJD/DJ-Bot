@@ -255,6 +255,7 @@ function init (mainApp) {
     app.get('/express-test', function (req, res) {
         res.status(200).send("Server is working");
     });
+
     app.listen(port, () => console.log(`User login server listening on port ${port}!`));
 }
 module.exports = init;

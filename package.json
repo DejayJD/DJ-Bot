@@ -4,7 +4,9 @@
   "description": "A DJ bot for Slack that synchronizes music between people in slack channels",
   "main": "server.js",
   "scripts": {
-    "run": "nodemon server.js",
+    "build-w":"tsc --p tsconfig.json --watch",
+    "build":"tsc --p tsconfig.json",
+    "run": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -39,6 +41,7 @@
     "rand-token": "^0.4.0",
     "request": "^2.88.0",
     "slack-client": "^2.0.6",
-    "spotify-web-api-node": "^4.0.0"
+    "spotify-web-api-node": "^4.0.0",
+    "typescript": "^3.1.1"
   }
 }

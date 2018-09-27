@@ -3,6 +3,9 @@
  */
 
 class User {
+    queue: any[];
+    isDj: boolean;
+
     constructor(id, name) {
         this.queue = [];
         this.isDj = false;
