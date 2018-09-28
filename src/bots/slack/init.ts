@@ -8,7 +8,7 @@
  * With custom integrations, we don't have a way to find out who installed us, so we can't message them :(
  */
 
-const _ = require('lodash');
+import * as _ from "lodash";
 
 function init(app) {
     function onInstallation(bot, installer) {
@@ -52,7 +52,7 @@ function init(app) {
         var controller = customIntegration.configure(token, config, onInstallation);
     } else if (process.env.CLIENT_ID && process.env.CLIENT_SECRET && process.env.PORT) {
         //Treat this as an app
-        let app = require('./lib/apps');
+        let app = require('../../../lib/apps');
         var controller = app.configure(process.env.PORT, process.env.CLIENT_ID, process.env.CLIENT_SECRET, config, onInstallation);
     } else {
         console.log('Error: If this is a custom integration, please specify TOKEN in the environment. If this is an app, please specify CLIENTID, CLIENTSECRET, and PORT in the environment');

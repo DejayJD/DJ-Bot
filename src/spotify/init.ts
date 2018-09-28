@@ -1,16 +1,17 @@
 /*
  *  Created By JD.Francis on 9/25/18
  */
+import cookieParser from 'cookie-parser'
+import * as express from 'express'
+import * as querystring from 'querystring'
+import * as SpotifyWebApi from 'spotify-web-api-node'
+import * as _ from "lodash";
+import * as request from 'request'
 
-const express = require('express');
-const cookieParser = require('cookie-parser');
+//Web server
 const app = express();
 app.use(cookieParser());
 const port = 3001;
-const querystring = require('querystring');
-const SpotifyWebApi = require('spotify-web-api-node');
-const _ = require('lodash');
-const request = require('request');
 
 function init (mainApp) {
 // credentials are optional
@@ -127,8 +128,8 @@ function init (mainApp) {
             request.post(authOptions, function (error, response, body) {
                 if (!error && response.statusCode === 200) {
 
-                    var access_token = body.access_token,
-                        refresh_token = body.refresh_token;
+                    let access_token = body.access_token;
+                    let refresh_token = body.refresh_token;
 
                     mainApp.setUserSpotifyCredentials(userToken, access_token, refresh_token);
                     mainApp.syncUser(userToken);
@@ -180,7 +181,7 @@ function init (mainApp) {
     });
 
 
-    currentSong = {
+    let currentSong = {
         currentUri: null,
         startTime: null
     };
@@ -193,24 +194,6 @@ function init (mainApp) {
             currentSong.currentUri = uri;
             currentSong.startTime = new Date();
             res.status(200).send("FUNK DAT");
-        }
-        catch (e) {
-            res.status(500).send(e);
-        }
-    });
-
-
-    async function syncUserMusic(userAccessToken, userRefreshToken) {
-        spotifyApi.setAccessToken(access_token);
-        spotifyApi.setRefreshToken(refresh_token);
-        //TODO: Figure out how to do this per user
-
-    }
-
-    app.get('/sync', async function (req, res) {
-        try {
-
-            res.status(200).send("Synced up!");
         }
         catch (e) {
             res.status(500).send(e);

@@ -3,11 +3,11 @@
 require('./config.js');
 
 //Setup a new application object
-let App = require('./dist/src/app/classes/App.js');
+const App = require('./dist/app/classes/App.js').App;
 let djApp = new App();
 
 //Pass that application along to the spotify and slack portions
 //Init Slack
-require('./src/bots/slack/init.js')(djApp);
+require('./dist/bots/slack/init.js')(djApp);
 //Init Spotify
-require('./src/spotify/init.js')(djApp);
+require('./dist/spotify/init.js')(djApp);
