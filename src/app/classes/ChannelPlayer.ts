@@ -1,28 +1,26 @@
 /*
  *  Created By JD.Francis on 9/26/18
  */
+import {User} from "./User";
+import {Track} from "./Track";
+
 export class ChannelPlayer {
 
-    channelId: number;
-    channelName:string;
-    currentSong:any;
-    songHistory:any[];
-    currentDevices:any[];
-    users:any[];
-    djQueue:any[];
+    channel_id: number;
+    channel_name: string;
+    currentSong?: Track = {  // Current song uri + start time
+        uri: 'spotify:track:2fTjkEmR1t7J4WICztg136',
+        startTime: new Date()
+    };
+    songHistory: any[] = []; // ["uri1", "uri2", "uri3"] -- List of previous songs
+    currentDevices: any[] = [];
+    users: User[] = []; //-- list of users - users with active = true will receive sync updates
+    // -- djQueue will be in the order that djs will take turns in
+    djQueue: any[] = [];// ["User 1", "User 2", "User 3"]
 
-    constructor(channelId, channelName) {
-        this.channelId = channelId;
-        this.channelName = channelName;
-        this.currentSong = {  // Current song uri + start time
-            uri: 'spotify:track:2fTjkEmR1t7J4WICztg136',
-            startTime: new Date()
-        };
-        this.songHistory = []; // ["uri1", "uri2", "uri3"] -- List of previous songs
-        this.currentDevices = [];
-        this.users = []; //-- list of users - users with active = true will receive sync updates
-        this.djQueue = [];// ["User 1", "User 2", "User 3"]
-        // -- djQueue will be in the order that djs will take turns in
+    constructor(channel_id, channel_name) {
+        this.channel_id = channel_id;
+        this.channel_name = channel_name;
     }
 
     broadcast() {

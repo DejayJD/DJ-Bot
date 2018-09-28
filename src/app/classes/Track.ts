@@ -1,6 +1,15 @@
 /*
  *  Created By JD.Francis on 9/27/18
  */
-export class Track {
+import {User} from "./User";
 
+export class Track {
+    uri: string;
+    startTime?: Date;
+
+    //TODO: Planning to use these eventually
+    listeners?: User[];
+    albumImg?: string;
+    emotes?: any[]; // emotes that the track received
+    endTime?: Date;
 }

@@ -1,7 +1,9 @@
 /*
  *  Created By JD.Francis on 9/25/18
+ *
+ *  This file is responsible for setting up a spotify server, auth-ing to it and
  */
-import cookieParser from 'cookie-parser'
+import * as cookieParser from 'cookie-parser'
 import * as express from 'express'
 import * as querystring from 'querystring'
 import * as SpotifyWebApi from 'spotify-web-api-node'
@@ -20,6 +22,8 @@ function init (mainApp) {
         clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
         redirectUri: process.env.SPOTIFY_REDIRECT
     });
+
+    //Pass this over to the app to use for our operations
     mainApp.setSpotifyApi(newSpotifyApi);
     let spotifyApi = mainApp.spotifyApi;
     let stateKey = 'spotify_auth_state';
@@ -34,32 +38,6 @@ function init (mainApp) {
         return text;
     };
 
-// Retrieve an access token.
-    const searchString = 'Funk Dat sagat';
-    spotifyApi.clientCredentialsGrant().then(
-        async function (data) {
-            console.log('The access token expires in ' + data.body['expires_in']);
-            let token = data.body['access_token'];
-            // Save the access token so that it's used in future calls
-            spotifyApi.setAccessToken(token);
-            // main();
-        },
-        function (err) {
-            console.log('Something went wrong when retrieving an access token', err);
-        }
-    );
-
-
-    async function search(searchString) {
-        try {
-            let data = await spotifyApi.searchTracks(searchString);
-            // console.log('Funk Dat results', data.body);
-            return data.body;
-        }
-        catch (e) {
-
-        }
-    }
 
 
     app.get('/login', function (req, res) {
@@ -161,6 +139,26 @@ function init (mainApp) {
         }
     });
 
+
+
+
+
+    // TODO: Clean these up
+    let currentSong = {
+        currentUri: null,
+        startTime: null
+    };
+    const searchString = 'Funk Dat sagat';
+    async function search(searchString) {
+        try {
+            let data = await spotifyApi.searchTracks(searchString);
+            // console.log('Funk Dat results', data.body);
+            return data.body;
+        }
+        catch (e) {
+
+        }
+    }
     app.get('/skip', async function (req, res) {
         try {
             await spotifyApi.skipToNext();
@@ -179,12 +177,6 @@ function init (mainApp) {
             res.status(500).send(e);
         }
     });
-
-
-    let currentSong = {
-        currentUri: null,
-        startTime: null
-    };
     app.get('/funk-dat', async function (req, res) {
         try {
             let searchResults = await search(searchString);

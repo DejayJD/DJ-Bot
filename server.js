@@ -3,6 +3,7 @@
 require('./config.js');
 
 //Setup a new application object
+//If ever needing massive performance, this could be separated
 const App = require('./dist/app/classes/App.js').App;
 let djApp = new App();
 
