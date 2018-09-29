@@ -43,12 +43,17 @@ function init (mainApp) {
     app.get('/login', function (req, res) {
         let state = generateRandomString(16);
         res.cookie(stateKey, state);
-        res.cookie('user_token', req.query['user_token']);
+        res.cookie('user_uuid', req.query['user_uuid']);
 
-        // your application requests authorization
+        // The auth scopes the user is requested to give
+        // See : https://developer.spotify.com/documentation/general/guides/scopes/
         let scopes = [
             'user-read-private',
             'user-library-read',
+            'playlist-read-private',
+            'playlist-modify-private',
+            'playlist-modify-public',
+            'playlist-read-collaborative',
             'user-read-email',
             'user-read-playback-state',
             'streaming',
@@ -72,8 +77,8 @@ function init (mainApp) {
 
         let state = req.query.state || null;
         let storedState = req.cookies ? req.cookies[stateKey] : null;
-        let userToken = req.cookies['user_token'] || null;
-        let existingUser = _.find(mainApp.users, {user_token:userToken});
+        let user_uuid = req.cookies['user_uuid'] || null;
+        let existingUser = _.find(mainApp.users, {user_uuid:user_uuid});
 
         // after checking the state parameter
 
@@ -84,10 +89,10 @@ function init (mainApp) {
                     error: 'state_mismatch'
                 }));
         } else if (_.isNil(existingUser)) {
-            console.error("Unable to find user, invalid user_token!");
+            console.error("Unable to find user, invalid user_uuid!");
             res.redirect('/#' +
                 querystring.stringify({
-                    error: 'unable to find user_token' + userToken
+                    error: 'unable to find user_uuid' + user_uuid
                 }));
         } {
             res.clearCookie(stateKey);
@@ -108,27 +113,10 @@ function init (mainApp) {
 
                     let access_token = body.access_token;
                     let refresh_token = body.refresh_token;
-
-                    mainApp.setUserSpotifyCredentials(userToken, access_token, refresh_token);
-                    mainApp.syncUser(userToken);
-                    // var options = {
-                    //     url: 'https://api.spotify.com/v1/me',
-                    //     headers: {'Authorization': 'Bearer ' + access_token},
-                    //     json: true
-                    // };
-                    //
-                    // // use the access token to access the Spotify Web API
-                    // request.get(options, function (error, response, body) {
-                    //     console.log(body);
-                    // });
-
-                    // // we can also pass the token to the browser to make requests from there
-                    // res.redirect('http://localhost' + port + '/#' +
-                    //     querystring.stringify({
-                    //         access_token: access_token,
-                    //         refresh_token: refresh_token
-                    //     }));
-                    res.status(200).send('Success!')
+                    console.log("logged in user with token = " + access_token);
+                    mainApp.setUserSpotifyCredentials(user_uuid, access_token, refresh_token);
+                    // mainApp.syncUser(user_uuid);
+                    res.status(200).send('Successfully logged in!')
                 } else {
                     res.redirect('/#' +
                         querystring.stringify({
@@ -138,98 +126,71 @@ function init (mainApp) {
             });
         }
     });
-
+    app.get('/test', function (req, res) {
+        res.status(200).send("Server is working");
+    });
 
 
 
 
     // TODO: Clean these up
-    let currentSong = {
-        currentUri: null,
-        startTime: null
-    };
-    const searchString = 'Funk Dat sagat';
-    async function search(searchString) {
-        try {
-            let data = await spotifyApi.searchTracks(searchString);
-            // console.log('Funk Dat results', data.body);
-            return data.body;
-        }
-        catch (e) {
-
-        }
-    }
-    app.get('/skip', async function (req, res) {
-        try {
-            await spotifyApi.skipToNext();
-        }
-        catch (e) {
-            res.status(500).send(e);
-        }
-        res.status(200).send("Skipped");
-    });
-    app.get('/play', async function (req, res) {
-        try {
-            await spotifyApi.play();
-            res.status(200).send("Playing");
-        }
-        catch (e) {
-            res.status(500).send(e);
-        }
-    });
-    app.get('/funk-dat', async function (req, res) {
-        try {
-            let searchResults = await search(searchString);
-            let firstTrack = searchResults.tracks.items[0];
-            let uri = firstTrack.uri;
-            await spotifyApi.play({uris: [uri]});
-            currentSong.currentUri = uri;
-            currentSong.startTime = new Date();
-            res.status(200).send("FUNK DAT");
-        }
-        catch (e) {
-            res.status(500).send(e);
-        }
-    });
-
-    app.get('/pause', async function (req, res) {
-        try {
-            await spotifyApi.pause();
-        }
-        catch (e) {
-            res.status(500).send(e);
-        }
-        res.status(200).send("FUNK DAT");
-    });
-
-    app.get('/current-playback', async function (req, res) {
-        try {
-            let searchResults = await search(searchString);
-            let firstTrack = searchResults.tracks.items[0];
-            await spotifyApi.play();
-            // spotifyApi.transferMyPlayback()
-        }
-        catch (e) {
-            res.status(500).send(e);
-        }
-        res.status(200).send("FUNK DAT");
-    });
-
-    app.get('/search', async function (req, res) {
-        try {
-            let searchString = req.query['searchString'];
-            let searchResults = await search(searchString);
-            let firstTrack = searchResults.tracks.items[0];
-            res.status(200).send(firstTrack);
-        }
-        catch (e) {
-            res.status(500).send(e);
-        }
-    });
-
-    app.get('/express-test', function (req, res) {
-        res.status(200).send("Server is working");
-    });
+    // let currentSong = {
+    //     currentUri: null,
+    //     startTime: null
+    // };
+    // app.get('/skip', async function (req, res) {
+    //     try {
+    //         await spotifyApi.skipToNext();
+    //     }
+    //     catch (e) {
+    //         res.status(500).send(e);
+    //     }
+    //     res.status(200).send("Skipped");
+    // });
+    // app.get('/play', async function (req, res) {
+    //     try {
+    //
+    //         res.status(200).send("Playing");
+    //     }
+    //     catch (e) {
+    //         res.status(500).send(e);
+    //     }
+    // });
+    // app.get('/funk-dat', async function (req, res) {
+    //     try {
+    //         // let searchResults = await search(searchString);
+    //         let firstTrack = searchResults.tracks.items[0];
+    //         let uri = firstTrack.uri;
+    //         await spotifyApi.play({uris: [uri]});
+    //         currentSong.currentUri = uri;
+    //         currentSong.startTime = new Date();
+    //         res.status(200).send("FUNK DAT");
+    //     }
+    //     catch (e) {
+    //         res.status(500).send(e);
+    //     }
+    // });
+    // app.get('/pause', async function (req, res) {
+    //     try {
+    //         await spotifyApi.pause();
+    //     }
+    //     catch (e) {
+    //         res.status(500).send(e);
+    //     }
+    //     res.status(200).send("FUNK DAT");
+    // });
+    // app.get('/current-playback', async function (req, res) {
+    //     try {
+    //         let searchResults = await search(searchString);
+    //         let firstTrack = searchResults.tracks.items[0];
+    //         await spotifyApi.play();
+    //         // spotifyApi.transferMyPlayback()
+    //     }
+    //     catch (e) {
+    //         res.status(500).send(e);
+    //     }
+    //     res.status(200).send("FUNK DAT");
+    // });
 
     app.listen(port, () => console.log(`User login server listening on port ${port}!`));
 }

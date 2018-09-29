@@ -3,22 +3,19 @@
  */
 
 import {Track} from "./Track";
-import {uuid} from 'uuid';
+import * as uuid from 'uuid/v1';
 
 export class User {
     user_uuid: string; // Internal app id for tracking users
     username: string; //Will be originating from the app context (Slack, Discord, whatevs)
     context: any; //App context (slack, discord, hipchat)
-
     user_access_token: string; // Spotify access token
     user_refresh_token: string; // Spotify refresh token
-
+    playlist_id: any; // id of their playlist queue
     device_id: any; // spotify device id
-    channel: any;
-    team: any;
+    channel: any; // channel that user is a part of
 
-    active: boolean;
-    queue: Track[];
+    active: boolean; // if the user is active/inactive and should receive song sync updates
     //Currently unused
     isDj: boolean;
 

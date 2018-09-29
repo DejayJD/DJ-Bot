@@ -23,21 +23,58 @@ export class ChannelPlayer {
         this.channel_name = channel_name;
     }
 
-    broadcast() {
-        this.syncUsers();
+    async syncUser(spotifyApi, user) {
+        console.log("syncing user");
+        spotifyApi.setAccessToken(user['access_token']);
+        let currentTimestamp: any = new Date(); // Had to cast it to any to make typescript stop complaining.
+        let startTime: any = this.currentSong.startTime; // Had to cast it to any to make typescript stop complaining.
+        let playbackDifference = Math.abs(currentTimestamp - startTime);
+        let playData = {uris: [this.currentSong.uri], 'position_ms': playbackDifference};
+        try {
+            await spotifyApi.play(playData);
+        }
+        catch (e) {
+            console.error('unable to sync music =( playData = ');
+            console.error(playData);
+            console.error(e);
+        }
     }
 
-    syncUsers() {
-
+    syncUsers(users, spotifyApi) {
+        for (let user of users) {
+            this.syncUser(spotifyApi, user);
+        }
     }
 
-    selectNewSong() {
-        this.goToNextDj();
-        let nextSong = this.getUsersNextSong(this.getCurrentDJ());
+    async getUsersNextSong(user, spotifyApi) {
+        try {
+            let tracks = await spotifyApi.getPlaylistTracks(user.playlist_id);
+            //TODO: Cycle through user's playlist after this
+            return tracks.body.items[0];
+        }
+        catch (e) {
+            console.error(e);
+        }
     }
 
+    updateCurrentSong(songUri) {
+        this.currentSong = {
+            uri: songUri,
+            startTime: new Date()
+        }
+    }
+
+    async nextSong(users, spotifyApi) {
+        console.log("skipping to next");
+        // this.goToNextDj();
+        let nextSong = await this.getUsersNextSong(users[0], spotifyApi);
+        console.log(nextSong);
+        this.updateCurrentSong(nextSong.track['uri']);
+        this.syncUsers(users, spotifyApi);
+    }
+
+    //TODO: add DJ logic
     goToNextDj() {
-        this.cycleFirstArrayItem(this.djQueue);
     }
 
     addDj(dj) {
@@ -52,17 +89,13 @@ export class ChannelPlayer {
         //TODO: find dj reference and move them to new position
     }
 
-    // Moves current song to the back of the queue, gets the first one in the queue after that.
-    getUsersNextSong(user) {
-        return this.cycleFirstArrayItem(user.queue);
-    }
 
-    cycleFirstArrayItem(array) {
-        let firstItem = array[0];
-        array = array.shift();
-        array.push(firstItem);
-        return array;
-    }
+    // cycleFirstArrayItem(array) {
+    //     let firstItem = array[0];
+    //     array = array.shift();
+    //     array.push(firstItem);
+    //     return array;
+    // }
 
     getCurrentDJ() {
         return this.djQueue[0];

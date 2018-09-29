@@ -5,7 +5,6 @@
 import {ChannelPlayer} from "./ChannelPlayer";
 import * as _ from "lodash";
 import {randToken} from 'rand-token';
-import {uuid} from 'uuid';
 import {User} from "./User";
 
 export class App {
@@ -13,6 +12,7 @@ export class App {
     channelLimit: number = 100;
     channels: ChannelPlayer[] = [];
     users: User[] = [];
+    playlistQueueName = 'DJ-Bot~Queue';
     spotifyApi: any;
 
     constructor() {
@@ -22,6 +22,20 @@ export class App {
         return _.find(this.channels, (channel) => {
             return channel['id'] == channel_id;
         });
+    }
+
+    getUserChannel(user) {
+        let channel = _.find(this.channels, {channel_id: user['channel']['id']});
+        if (_.isNil(channel)) {
+            console.error(`Unable to find user channel!\nuser:${JSON.stringify(user)}`);
+            return;
+        }
+        return channel;
+    }
+
+    skipToNextSong(user) {
+        let channel = this.getUserChannel(user);
+        channel.nextSong(this.users, this.spotifyApi);
     }
 
     createChannel(channel, initialUsers: User[] = []) {
@@ -36,6 +50,27 @@ export class App {
         }
     }
 
+    createSpotifyPlaylist(user) {
+
+    }
+
+    async getDjBotPlaylist(user) {
+        try {
+            this.setAccessToken(user);
+            this.spotifyApi.setAccessToken(user['access_token']);
+            let spotifyUser = await this.spotifyApi.getMe();
+            let userId = spotifyUser['id'];
+            let userPlaylists = await this.spotifyApi.getUserPlaylists(userId);
+            let djBotPlaylist = _.find(userPlaylists.body.items, (playlist) => {
+                return playlist.name == this.playlistQueueName;
+            });
+            user.playlist_id = djBotPlaylist.id;
+        }
+        catch (e){
+            console.error(e);
+        }
+    }
+
     setUserSpotifyCredentials(user_uuid, access_token, refresh_token) {
         let user = _.find(this.users, {user_uuid: user_uuid});
         if (_.isNil(user)) {
@@ -44,6 +79,7 @@ export class App {
         }
         user['access_token'] = access_token;
         user['refresh_token'] = refresh_token;
+        this.getDjBotPlaylist(user);
     }
 
     getUserByUserId(id) {
@@ -62,19 +98,9 @@ export class App {
         this.spotifyApi = spotifyApi;
     }
 
-    async syncUser(user_uuid) {
-        let user = _.find(this.users, {user_uuid: user_uuid});
+    setAccessToken(user) {
         this.spotifyApi.setAccessToken(user['access_token']);
         this.spotifyApi.setRefreshToken(user['refresh_token']);
-        let userChannel = _.find(this.channels, {channel_id: user['channel']['id']});
-        if (_.isNil(userChannel)) {
-            console.error(`Unable to find user channel!\nuser:${JSON.stringify(user)}`);
-            return;
-        }
-        let currentSong = userChannel['currentSong'];
-        let currentTimestamp: any = new Date(); // Had to cast it to any to make typescript stop complaining.
-        let playbackDifference = Math.abs(currentTimestamp - currentSong.startTime);
-        await this.spotifyApi.play({uris: [currentSong.uri], 'position_ms': playbackDifference});
     }
 
     userExists(user): boolean {
@@ -84,8 +110,26 @@ export class App {
 
     createUser(user) {
         let newUser = new User(user);
-        this.users.push(user);
-        return user;
+        this.users.push(newUser);
+        return newUser;
+    }
+
+    getTopSongOffPlaylist(playlistId) {
+
+    }
+
+    async addToUserPlaylist(userId, trackData, context = 'slack') {
+        let user = _.find(this.users, (data) => {
+            return data['context']['user']['id'] === userId && data['context']['type'] == context;
+        });
+        this.setAccessToken(user);
+        let playlist_id = user['playlist_id'];
+        try {
+            await this.spotifyApi.addTracksToPlaylist(playlist_id, [trackData['value']]);
+        }
+        catch (e) {
+            console.error(e);
+        }
     }
 
     loginUser(user) {
@@ -101,5 +145,10 @@ export class App {
             console.log("user already exists, just inactive");
         }
         return user;
+    }
+
+    async searchSongs(searchString) {
+        let data = await this.spotifyApi.searchTracks(searchString);
+        return data.body;
     }
 }
