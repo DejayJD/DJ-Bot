@@ -9,7 +9,7 @@ function init(app) {
     let controller = require('../../../lib/bot_setup.js');
 
     controller.on('bot_channel_join', function (bot, message) {
-        //TODO: Create channel in app
+        //TODO: Create channel if not already existing
         bot.reply(message, "Lets get some tunes going!\nNeed some help getting some bangers going? Try /help")
     });
 

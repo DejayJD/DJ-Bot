@@ -4,8 +4,10 @@
 
 import {ChannelPlayer} from "./ChannelPlayer";
 import * as _ from "lodash";
-import {randToken} from 'rand-token';
 import {User} from "./User";
+import {UserService} from "../services/UserService";
+import {Service} from "../services/ServiceManager";
+import {SpotifyService} from "../../spotify/services/SpotifyService";
 
 export class App {
 
@@ -14,8 +16,11 @@ export class App {
     users: User[] = [];
     playlistQueueName = 'DJ-Bot~Queue';
     spotifyApi: any;
+    userService : UserService;
 
     constructor() {
+        this.spotifyApi = Service.getService(SpotifyService).spotifyApi;
+        this.userService = Service.getService(UserService);
     }
 
     channelExists(channel_id) {
@@ -35,7 +40,7 @@ export class App {
 
     skipToNextSong(user) {
         let channel = this.getUserChannel(user);
-        channel.nextSong(this.users, this.spotifyApi);
+        channel.nextSong(this.users);
     }
 
     createChannel(channel, initialUsers: User[] = []) {
@@ -66,7 +71,7 @@ export class App {
             });
             user.playlist_id = djBotPlaylist.id;
         }
-        catch (e){
+        catch (e) {
             console.error(e);
         }
     }

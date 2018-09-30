@@ -1,4 +1,4 @@
 node_modules/
 .idea/
-config.js
+environmentVars.js
 db_slack_bot_a/

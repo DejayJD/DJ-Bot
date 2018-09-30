@@ -2,6 +2,8 @@
  *  Created By JD.Francis on 9/26/18
  */
 import {User} from "./User";
+import {SpotifyService} from "../../spotify/services/SpotifyService";
+import {Service} from "../services/ServiceManager";
 import {Track} from "./Track";
 
 export class ChannelPlayer {
@@ -17,21 +19,22 @@ export class ChannelPlayer {
     users: User[] = []; //-- list of users - users with active = true will receive sync updates
     // -- djQueue will be in the order that djs will take turns in
     djQueue: any[] = [];// ["User 1", "User 2", "User 3"]
+    spotifyApi: any;
 
     constructor(channel_id, channel_name) {
         this.channel_id = channel_id;
         this.channel_name = channel_name;
+        this.spotifyApi = Service.getService(SpotifyService).spotifyApi;
     }
 
-    async syncUser(spotifyApi, user) {
-        console.log("syncing user");
-        spotifyApi.setAccessToken(user['access_token']);
+    async syncUser(user) {
+        this.spotifyApi.setAccessToken(user['access_token']);
         let currentTimestamp: any = new Date(); // Had to cast it to any to make typescript stop complaining.
         let startTime: any = this.currentSong.startTime; // Had to cast it to any to make typescript stop complaining.
         let playbackDifference = Math.abs(currentTimestamp - startTime);
         let playData = {uris: [this.currentSong.uri], 'position_ms': playbackDifference};
         try {
-            await spotifyApi.play(playData);
+            await this.spotifyApi.play(playData);
         }
         catch (e) {
             console.error('unable to sync music =( playData = ');
@@ -40,16 +43,22 @@ export class ChannelPlayer {
         }
     }
 
-    syncUsers(users, spotifyApi) {
+    syncUsers(users) {
         for (let user of users) {
-            this.syncUser(spotifyApi, user);
+            this.syncUser(user);
         }
     }
 
-    async getUsersNextSong(user, spotifyApi) {
+    async moveTopSongToBottom(user) {
+        let playlist = await this.spotifyApi.getPlaylist(user['playlist_id']);
+        console.log(playlist);
+        console.log(playlist['total']);
+    }
+
+    async getUsersNextSong(user) {
         try {
-            let tracks = await spotifyApi.getPlaylistTracks(user.playlist_id);
-            //TODO: Cycle through user's playlist after this
+            let tracks = await this.spotifyApi.getPlaylistTracks(user.playlist_id);
+            this.moveTopSongToBottom(user);
             return tracks.body.items[0];
         }
         catch (e) {
@@ -64,13 +73,11 @@ export class ChannelPlayer {
         }
     }
 
-    async nextSong(users, spotifyApi) {
-        console.log("skipping to next");
+    async nextSong(users) {
         // this.goToNextDj();
-        let nextSong = await this.getUsersNextSong(users[0], spotifyApi);
-        console.log(nextSong);
+        let nextSong = await this.getUsersNextSong(users[0]);
         this.updateCurrentSong(nextSong.track['uri']);
-        this.syncUsers(users, spotifyApi);
+        this.syncUsers(users);
     }
 
     //TODO: add DJ logic

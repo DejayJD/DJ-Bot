@@ -6,7 +6,6 @@
 import * as cookieParser from 'cookie-parser'
 import * as express from 'express'
 import * as querystring from 'querystring'
-import * as SpotifyWebApi from 'spotify-web-api-node'
 import * as _ from "lodash";
 import * as request from 'request'
 
@@ -16,16 +15,6 @@ app.use(cookieParser());
 const port = 3001;
 
 function init (mainApp) {
-// credentials are optional
-    const newSpotifyApi = new SpotifyWebApi({
-        clientId: process.env.SPOTIFY_CLIENT_ID,
-        clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
-        redirectUri: process.env.SPOTIFY_REDIRECT
-    });
-
-    //Pass this over to the app to use for our operations
-    mainApp.setSpotifyApi(newSpotifyApi);
-    let spotifyApi = mainApp.spotifyApi;
     let stateKey = 'spotify_auth_state';
 
     function generateRandomString(length) {
@@ -113,7 +102,6 @@ function init (mainApp) {
 
                     let access_token = body.access_token;
                     let refresh_token = body.refresh_token;
-                    console.log("logged in user with token = " + access_token);
                     mainApp.setUserSpotifyCredentials(user_uuid, access_token, refresh_token);
                     // mainApp.syncUser(user_uuid);
                     res.status(200).send('Successfully logged in!')

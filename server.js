@@ -1,6 +1,10 @@
 
 //Import environment variables
-require('./config.js');
+const Service = require('./dist/app/services/ServiceManager.js').Service;
+const UserService = require('./dist/app/services/UserService').UserService;
+
+require('./environmentVars.js');
+require('./dist/app/services/service-manager.js');
 
 //Setup a new application object
 //If ever needing massive performance, this could be separated
@@ -11,4 +15,4 @@ let djApp = new App();
 //Init Slack
 require('./dist/bots/slack/server.js')(djApp);
 //Init Spotify
-require('./dist/spotify/server.js')(djApp);
+require('./dist/spotify/servers/server.js')(djApp);
