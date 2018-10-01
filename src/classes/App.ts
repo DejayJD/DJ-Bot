@@ -46,8 +46,8 @@ export class App {
     createChannel(channel, initialUsers: User[] = []) {
         if (!this.channelExists(channel.id)) {
             let newChannel = new ChannelPlayer(channel['id'], channel['name']);
-            newChannel.users = [];
-            newChannel.users.push(...initialUsers);
+            newChannel.djQueue = [];
+            newChannel.djQueue.push(..._.map(initialUsers, 'user_uuid'));
             this.channels.push(newChannel);
         }
         else {
