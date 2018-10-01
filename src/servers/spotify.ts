@@ -8,6 +8,8 @@ import * as express from 'express'
 import * as querystring from 'querystring'
 import * as _ from "lodash";
 import * as request from 'request'
+import {Service} from "../services/ServiceManager";
+import {UserService} from "../services/UserService";
 
 //Web server
 const app = express();
@@ -16,6 +18,7 @@ const port = 3001;
 
 function init (mainApp) {
     let stateKey = 'spotify_auth_state';
+    let userService = Service.getService(UserService);
 
     function generateRandomString(length) {
         let text = '';
@@ -67,7 +70,7 @@ function init (mainApp) {
         let state = req.query.state || null;
         let storedState = req.cookies ? req.cookies[stateKey] : null;
         let user_uuid = req.cookies['user_uuid'] || null;
-        let existingUser = _.find(mainApp.users, {user_uuid:user_uuid});
+        let existingUser = userService.getUser({user_uuid:user_uuid});
 
         // after checking the state parameter
 
@@ -102,7 +105,7 @@ function init (mainApp) {
 
                     let access_token = body.access_token;
                     let refresh_token = body.refresh_token;
-                    mainApp.setUserSpotifyCredentials(user_uuid, access_token, refresh_token);
+                    userService.setUserSpotifyCredentials(user_uuid, access_token, refresh_token);
                     // mainApp.syncUser(user_uuid);
                     res.status(200).send('Successfully logged in!')
                 } else {
