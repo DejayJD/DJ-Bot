@@ -6,7 +6,7 @@ import {Track} from "./Track";
 import * as uuid from 'uuid/v1';
 
 export class User {
-    user_uuid: string; // Internal app id for tracking users
+    user_uuid: string; // Internal app token for tracking users
     username: string; //Will be originating from the app context (Slack, Discord, whatevs)
     context: any; //App context (slack, discord, hipchat)
     user_access_token: string; // Spotify access token

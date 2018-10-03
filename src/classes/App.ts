@@ -4,10 +4,11 @@
 
 import {ChannelPlayer} from "./ChannelPlayer";
 import * as _ from "lodash";
-import {User} from "./User";
+import {User} from "../models/User";
 import {UserService} from "../services/UserService";
 import {Service} from "../services/ServiceManager";
 import {SpotifyService} from "../services/SpotifyService";
+import * as Timeout from 'await-timeout';
 
 export class App {
 
@@ -16,10 +17,11 @@ export class App {
     spotifyApi: any;
     userService: UserService;
     spotifyService: SpotifyService;
+    bot : any;
 
     constructor() {
         this.userService = Service.getService(UserService);
-        this.spotifyService = Service.getService(SpotifyService, this.userService);
+        this.spotifyService = Service.getService(SpotifyService);
         this.spotifyApi = this.spotifyService.spotifyApi;
     }
 
@@ -45,7 +47,7 @@ export class App {
 
     createChannel(channel, initialUsers: User[] = []) {
         if (!this.channelExists(channel.id)) {
-            let newChannel = new ChannelPlayer(channel['id'], channel['name']);
+            let newChannel = new ChannelPlayer(channel['id'], channel['name'], this.bot);
             newChannel.djQueue = [];
             newChannel.djQueue.push(..._.map(initialUsers, 'user_uuid'));
             this.channels.push(newChannel);
@@ -63,9 +65,9 @@ export class App {
         await this.spotifyService.addToUserPlaylist(userId, trackData, context)
     }
 
-    loginUser(userData) {
+    async loginUser(userData) {
         //add channel
-        let user = this.userService.loginUser(userData);
+        let user = await this.userService.loginUser(userData);
         if (!_.isNil(user.channel)) {
             this.createChannel(user.channel, [user]);
         }

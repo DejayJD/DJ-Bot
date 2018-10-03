@@ -1,10 +1,11 @@
 /*
  *  Created By JD.Francis on 9/26/18
  */
-import {User} from "./User";
+import {User} from "../models/User";
 import {Service} from "../services/ServiceManager";
-import {Track} from "./Track";
+import {Track} from "../models/Track";
 import {SpotifyService} from "../services/SpotifyService";
+import * as Timeout from 'await-timeout';
 
 export class ChannelPlayer {
 
@@ -19,8 +20,10 @@ export class ChannelPlayer {
     // -- djQueue will be in the order that djs will take turns in
     djQueue: any[] = [];// ["User 1", "User 2", "User 3"]
     spotifyApi: any;
+    bot: any;
 
-    constructor(channel_id, channel_name) {
+    constructor(channel_id, channel_name, bot) {
+        this.bot = bot;
         this.channel_id = channel_id;
         this.channel_name = channel_name;
         this.spotifyApi = Service.getService(SpotifyService).spotifyApi;
@@ -40,6 +43,12 @@ export class ChannelPlayer {
             console.error(playData);
             console.error(e);
         }
+    }
+
+    async scheduleSongTransition(currentSong, users) {
+        await Timeout.set(currentSong['duration_ms']);
+        console.log("song is finished. Going to next song!");
+        this.nextSong(users);
     }
 
     syncUsers(users) {
@@ -80,10 +89,19 @@ export class ChannelPlayer {
 
     async nextSong(users) {
         // this.goToNextDj();
-
         //TODO: Implement DJ queue
         let nextSong = await this.getUsersNextSong(users[0]);
+        this.moveTopSongToBottom(users[0]);
+        this.bot.sendWebhook({
+            text: 'Now playing ' + nextSong.track['name'],
+            channel: this.channel_name,
+        },function(err,res) {
+            if (err) {
+                // ...
+            }
+        });
         this.updateCurrentSong(nextSong.track['uri']);
+        this.scheduleSongTransition(nextSong.track, users);
         this.syncUsers(users);
     }
 

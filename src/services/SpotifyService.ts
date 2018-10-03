@@ -7,6 +7,7 @@ export class SpotifyService {
     userService: any;
     constructor(userService: UserService) {
         this.userService = userService;
+        console.log(this.userService);
         this.spotifyApi = new SpotifyWebApi({
             clientId: process.env.SPOTIFY_CLIENT_ID,
             clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
@@ -20,6 +21,7 @@ export class SpotifyService {
     }
 
     async addToUserPlaylist(userId, trackData, context) {
+        console.log(this.userService);
         let user = _.find(this.userService.users, (data) => {
             return data['context']['user']['id'] === userId && data['context']['type'] == context;
         });

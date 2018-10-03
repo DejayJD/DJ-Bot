@@ -25,7 +25,7 @@ import {SpotifyService} from "./SpotifyService";
 let Service = (function () {
     let ServiceDirectory = [
         {prototype: UserService, instance: null},
-        {prototype: SpotifyService, instance: null}
+        {prototype: SpotifyService, instance: null},
     ];
 
     function createInstance(prototype, constructorParams) {
@@ -46,4 +46,7 @@ let Service = (function () {
         }
     };
 })();
+
+let userService = Service.getService(UserService);
 export {Service}
+

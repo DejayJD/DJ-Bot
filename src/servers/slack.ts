@@ -11,6 +11,12 @@ function init(app) {
     //I abstracted all the setup code out of this file, so that I can leave all the business logic here
     let controller = require('../../lib/bot_setup.js');
     let userService = Service.getService(UserService);
+    let bot = controller.spawn({
+        incoming_webhook: {
+            url: process.env.SLACK_WEBHOOK
+        }
+    });
+    app.bot = bot;
 
     controller.on('bot_channel_join', function (bot, message) {
         //TODO: Create channel if not already existing
@@ -45,7 +51,6 @@ function init(app) {
     });
 
     function sync(bot, message) {
-        //TODO: Test this
         let user = userService.getSlackUser(createSlackObject(message));
         app.getUserChannel.syncUser(user);
         bot.replyPrivate("Syncing you up...");
@@ -61,9 +66,9 @@ function init(app) {
         bot.reply(message, user.context.user.name + ' requested to skip to next song');
     }
 
-    function getSpotifyLoginLink(bot, message) {
+    async function getSpotifyLoginLink(bot, message) {
         let user = createSlackObject(message);
-        user = app.loginUser(user);
+        user = await app.loginUser(user);
         let loginMsg = `Login to Spotify to enable DJ-Bot! http://localhost:3001/login?user_uuid=${user['user_uuid']}`;
         bot.replyInteractive(message, loginMsg);
     }
