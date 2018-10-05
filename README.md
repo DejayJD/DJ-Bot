@@ -5,9 +5,14 @@ A radio bots for Slack that synchronizes dj between people in bots channels
 
 In a terminal, start up node (it also needs to serve on port 3000):
 
-`nodemon server.js`
+`npm start` or `node server.js`
 
+Also need to start up the database (on port 27017).
+In a separate terminal run
 
+`sudo mongod`
+
+-- Note - DONT use nodemon, it will use up your api connections and kick you off
 ### Slackbot specific
 Local tunnel the slack server so that slack can see local host.
 Do this in a different terminal than the node
@@ -17,5 +22,4 @@ Do this in a different terminal than the node
 Then, you may need to authorize OAuth to your server, in that case, go to `localhost:3000/login` or `radio-bots.localtunnel.me/login` and authorize the app with the server
 
 ### Spotify specific
-In order to allow spotify authorization to manage your device, you need to login.
-Go to `localhost:3001/login` to set up the auth.
+Spotify will start on port 3001 and slack will prompt the user if it needs authentication
