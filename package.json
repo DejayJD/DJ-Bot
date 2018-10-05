@@ -43,6 +43,7 @@
     "querystring": "^0.2.0",
     "rand-token": "^0.4.0",
     "request": "^2.88.0",
+    "rxjs": "^6.3.3",
     "service-js": "0.0.1",
     "slack-client": "^2.0.6",
     "spotify-web-api-node": "^4.0.0",

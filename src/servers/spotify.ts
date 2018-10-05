@@ -129,66 +129,6 @@ function init(mainApp) {
         res.status(200).send("Server is working");
     });
 
-
-    // TODO: Clean these up
-    // let currentSong = {
-    //     currentUri: null,
-    //     startTime: null
-    // };
-    // app.get('/skip', async function (req, res) {
-    //     try {
-    //         await spotifyApi.skipToNext();
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    //     res.status(200).send("Skipped");
-    // });
-    // app.get('/play', async function (req, res) {
-    //     try {
-    //
-    //         res.status(200).send("Playing");
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    // });
-    // app.get('/funk-dat', async function (req, res) {
-    //     try {
-    //         // let searchResults = await search(searchString);
-    //         let firstTrack = searchResults.tracks.items[0];
-    //         let uri = firstTrack.uri;
-    //         await spotifyApi.play({uris: [uri]});
-    //         currentSong.currentUri = uri;
-    //         currentSong.startTime = new Date();
-    //         res.status(200).send("FUNK DAT");
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    // });
-    // app.get('/pause', async function (req, res) {
-    //     try {
-    //         await spotifyApi.pause();
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    //     res.status(200).send("FUNK DAT");
-    // });
-    // app.get('/current-playback', async function (req, res) {
-    //     try {
-    //         let searchResults = await search(searchString);
-    //         let firstTrack = searchResults.tracks.items[0];
-    //         await spotifyApi.play();
-    //         // spotifyApi.transferMyPlayback()
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    //     res.status(200).send("FUNK DAT");
-    // });
-
     app.listen(port, () => console.log(`User login server listening on port ${port}!`));
 }
 

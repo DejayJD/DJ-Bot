@@ -1,28 +1,36 @@
-import {User} from "../models/User";
 import * as _ from "lodash";
 import {Service} from "./ServiceManager";
 import {SpotifyService} from "./SpotifyService";
 import {DbUser} from "./DatabaseConnection";
+import * as uuid from 'uuid/v1';
 
 export class UserService {
-    maxUsers;
     users = [];
-    spotifyApi: any;
     spotifyService: SpotifyService;
     playlistQueueName = 'DJ-Bot~Queue';
 
     constructor() {
         this.spotifyService = Service.getService(SpotifyService, this);
         this.getUsers();
-        this.spotifyApi = this.spotifyService.spotifyApi;
     }
 
     async getUsers() {
         this.users = await DbUser.find();
     }
 
+    getUserNameByContext(user) {
+        if (user.context.type == 'slack') {
+            return user.context.user.name;
+        }
+    }
+
     async createUser(userData) {
-        let newUser = new User(userData);
+        let newUser = {
+            user_uuid: uuid(),
+            channel: userData['channel'],
+            context: userData['context'],
+            username: this.getUserNameByContext(userData)
+        };
         let dbUser = new DbUser(newUser); //adds the user to the DB
         try {
             await dbUser.save();
@@ -75,10 +83,11 @@ export class UserService {
 
     async getUserPlaylistId(user) {
         try {
-            this.spotifyApi.setAccessToken(user['access_token']);
-            let spotifyUser = await this.spotifyApi.getMe();
+            let spotifyUser = await this.spotifyService.spotifyApi(user, 'getMe');
             let userId = spotifyUser['id'];
-            let userPlaylists = await this.spotifyApi.getUserPlaylists(userId);
+
+            let userPlaylists = await this.spotifyService.spotifyApi(user, 'getUserPlaylists', userId);
+            // let userPlaylists = await this.spotifyApiObj.getUserPlaylists(userId);
             let djBotPlaylist = _.find(userPlaylists.body.items, (playlist) => {
                 return playlist.name == this.playlistQueueName;
             });
@@ -113,12 +122,12 @@ export class UserService {
         else {
             user = existingUser;
         }
-        user['active'] = true;
+        user['listening'] = true;
         return user;
     }
 
     createSpotifyPlaylist(user) {
-        //TODO:
+        //TODO: create playlist for a new user
     }
 
 }

@@ -1,42 +1,44 @@
 /*
  *  Created By JD.Francis on 9/26/18
  */
-import {User} from "../models/User";
 import {Service} from "../services/ServiceManager";
 import {Track} from "../models/Track";
 import {SpotifyService} from "../services/SpotifyService";
 import * as Timeout from 'await-timeout';
 import * as _ from "lodash";
+import {Observable} from "rxjs/index";
 
 export class ChannelPlayer {
     channel_id: number;
     channel_name: string;
     currentSong?: Track = {  // Current song uri + start time
         uri: 'spotify:track:2fTjkEmR1t7J4WICztg136',
-        startTime: new Date(),
+        startTime: new Date()
     };
     songHistory: any[] = []; // ["uri1", "uri2", "uri3"] -- List of previous songs
     currentDevices: any[] = [];
     // -- djQueue will be in the order that djs will take turns in
     djQueue: any[] = [];// ["User 1", "User 2", "User 3"]
-    spotifyApi: any;
-    bot: any;
+    spotifyService: any;
 
-    constructor(channel_id, channel_name, bot) {
-        this.bot = bot;
+    outgoingMessageEmitter;
+    outgoingMessages : Observable<any>;
+
+    constructor(channel_id, channel_name) {
         this.channel_id = channel_id;
         this.channel_name = channel_name;
-        this.spotifyApi = Service.getService(SpotifyService).spotifyApi;
+        this.spotifyService = Service.getService(SpotifyService);
+        this.outgoingMessages = Observable.create(e => this.outgoingMessageEmitter = e);
+        this.outgoingMessages.subscribe(this.outgoingMessageEmitter);
     }
 
     async syncUser(user) {
-        this.spotifyApi.setAccessToken(user['access_token']);
         let currentTimestamp: any = new Date(); // Had to cast it to any to make typescript stop complaining.
         let startTime: any = this.currentSong.startTime; // Had to cast it to any to make typescript stop complaining.
         let playbackDifference = Math.abs(currentTimestamp - startTime);
         let playData = {uris: [this.currentSong.uri], 'position_ms': playbackDifference};
         try {
-            await this.spotifyApi.play(playData);
+            await this.spotifyService.spotifyApi(user, 'play', playData);
         }
         catch (e) {
             console.error('unable to sync music. playData = ');
@@ -49,7 +51,7 @@ export class ChannelPlayer {
     async scheduleSongTransition(currentSong, users) {
         let timer = new Timeout();
         this.currentSong.timer = timer;
-        timer.set(currentSong['duration_ms']).then(()=>{
+        timer.set(currentSong['duration_ms']).then(() => {
             this.nextSong(users);
         });
 
@@ -63,11 +65,11 @@ export class ChannelPlayer {
 
     async moveTopSongToBottom(user) {
         try {
-            let playlist = await this.spotifyApi.getPlaylist(user['playlist_id']);
+            let playlist = await this.spotifyService.spotifyApi(user, 'getPlaylist', user['playlist_id']);
             let playlistLength = playlist.body.tracks.total;
-            let res = await this.spotifyApi.reorderTracksInPlaylist(user['playlist_id'], 0, playlistLength);
+            let res = await this.spotifyService.spotifyApi(user, 'reorderTracksInPlaylist', user['playlist_id'], 0, playlistLength);
         }
-        catch (e){
+        catch (e) {
             console.error("Unable to move user track from top to bottom");
             console.error(e);
         }
@@ -75,8 +77,7 @@ export class ChannelPlayer {
 
     async getUsersNextSong(user) {
         try {
-            this.spotifyApi.setAccessToken(user['access_token']);
-            let tracks = await this.spotifyApi.getPlaylistTracks(user.playlist_id);
+            let tracks = await this.spotifyService.spotifyApi(user, 'getPlaylistTracks', user.playlist_id);
             return tracks.body.items[0];
         }
         catch (e) {
@@ -107,15 +108,11 @@ export class ChannelPlayer {
             console.error("unable to find users nextSong! user = " + JSON.stringify(nextDj));
         }
         this.moveTopSongToBottom(nextDj);
-        this.bot.sendWebhook({
-            text: 'Now playing ' + nextSong.track['name'],
-            channel: this.channel_name,
-        },function(err,res) {});
+        this.outgoingMessageEmitter.next({type:"nowPlaying", data:nextSong.track, channel:this.channel_name});
         this.updateCurrentSong(nextSong.track);
-
+        this.syncUsers(users);
         //TODO: figure out listeners logic
         this.scheduleSongTransition(nextSong.track, users);
-        this.syncUsers(users);
     }
 
     //TODO: add DJ logic

@@ -4,10 +4,10 @@
 
 import {ChannelPlayer} from "./ChannelPlayer";
 import * as _ from "lodash";
-import {User} from "../models/User";
 import {UserService} from "../services/UserService";
 import {Service} from "../services/ServiceManager";
 import {SpotifyService} from "../services/SpotifyService";
+import {Observable} from "rxjs/index";
 
 export class App {
 
@@ -16,12 +16,15 @@ export class App {
     spotifyApi: any;
     userService: UserService;
     spotifyService: SpotifyService;
-    bot: any;
+    outgoingMessages : Observable<any>;
+    outgoingMessageEmitter;
 
     constructor() {
         this.userService = Service.getService(UserService);
         this.spotifyService = Service.getService(SpotifyService);
         this.spotifyApi = this.spotifyService.spotifyApi;
+        this.outgoingMessages = Observable.create(e => this.outgoingMessageEmitter = e);
+        this.outgoingMessages.subscribe(this.outgoingMessageEmitter);
     }
 
     channelExists(channel_id) {
@@ -54,12 +57,20 @@ export class App {
         channel.nextSong([user]);
     }
 
-    createChannel(channel, initialUsers: User[] = []) {
+    subscribeToChannelMessages(channel) {
+        channel.outgoingMessages.subscribe((data)=>{
+            this.outgoingMessageEmitter.next(data);
+        });
+    }
+
+    //TODO: implement channel service
+    createChannel(channel, initialUsers = []) {
         if (!this.channelExists(channel.id)) {
-            let newChannel = new ChannelPlayer(channel['id'], channel['name'], this.bot);
+            let newChannel = new ChannelPlayer(channel['id'], channel['name']);
             // newChannel.djQueue = [];
             // newChannel.djQueue.push(..._.map(initialUsers, 'user_uuid'));
             this.channels.push(newChannel);
+            this.subscribeToChannelMessages(newChannel);
             return newChannel;
         }
         else {
@@ -92,8 +103,7 @@ export class App {
     async searchSongs(user, searchString) {
         user = await this.userService.getUser(user, 'context');
         try {
-            let data = await this.spotifyService.callSpotifyApi(user, 'searchTracks', searchString);
-            // let data = await this.spotifyApi.searchTracks(searchString);
+            let data = await this.spotifyService.spotifyApi(user, 'searchTracks', searchString);
             return data.body;
         }
         catch (e) {

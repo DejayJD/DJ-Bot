@@ -4,8 +4,8 @@
 import * as _ from "lodash";
 import {UserService} from "../services/UserService";
 import {Service} from "../services/ServiceManager";
+import {SlackMessages} from "../classes/SlackMessages";
 
-const spotifyColor = "#1DB954";
 
 function init(app) {
     //I abstracted all the setup code out of this file, so that I can leave all the business logic here
@@ -16,7 +16,7 @@ function init(app) {
             url: process.env.SLACK_WEBHOOK
         }
     });
-    app.bot = bot;
+
 
     controller.on('bot_channel_join', function (bot, message) {
         //TODO: Create channel if not already existing
@@ -35,6 +35,21 @@ function init(app) {
         "add_song_to_queue": addSongToQueue
     };
 
+    const outgoingMessages = {
+        "nowPlaying":displayNowPlaying
+    };
+
+    app.outgoingMessages.subscribe(async (data)=>{
+        try {
+            let callback = outgoingMessages[data['type']];
+            callback(bot, data['data']);
+        }
+        catch (e) {
+            console.error('Unable to send outgoing message!');
+            console.error(e);
+        }
+    });
+
     controller.on('slash_command', async function (bot, message) {
         try {
             let userLoggedIn = await userService.userIsLoggedIn(createSlackObject(message), 'slack');
@@ -51,6 +66,13 @@ function init(app) {
         bot.reply(message, 'Hello!');
     });
 
+
+    function displayNowPlaying(bot, data) {
+        bot.sendWebhook(SlackMessages.NowPlayingMessage(data), function (err, res) {
+        });
+    }
+
+
     function sync(bot, message) {
         let user = userService.getSlackUser(createSlackObject(message));
         app.getUserChannel.syncUser(user);
@@ -58,7 +80,7 @@ function init(app) {
     }
 
     function requestLogin(bot, message) {
-        bot.replyPrivate(message, generateSpotifyLoginButton());
+        bot.replyPrivate(message, SlackMessages.SpotifyLoginButton());
     }
 
     async function skipToNext(bot, message) {
@@ -108,7 +130,7 @@ function init(app) {
                 }
             });
             let attachments = _.map(slicedResults, (track) => {
-                return generateAddTrackButton(track)
+                return SlackMessages.AddTrackButton(track)
             });
             bot.replyPrivate(message, {'attachments': attachments});
         }
@@ -157,49 +179,6 @@ function init(app) {
                 team: team,
             }
         };
-    }
-
-    function generateSpotifyLoginButton() {
-        return {
-            "text": "Login with spotify to enable DJ-Bot!",
-            "attachments": [
-                {
-                    "fallback": "Unfortunately, you will not be able to listen to music without hooking up your Spotify",
-                    "callback_id": "spotify_login",
-                    "color": spotifyColor,
-                    "attachment_type": "default",
-                    "actions": [
-                        {
-                            "name": "game",
-                            "text": "Login",
-                            "type": "button",
-                            "value": "login"
-                        }
-                    ]
-                }
-            ]
-        }
-    }
-
-    function generateAddTrackButton(track) {
-        return {
-            "fallback": "err dev didnt know what to put here",
-            "color": spotifyColor,
-            "author_name": track.artists,
-            "title": track.name,
-            "title_link": track.uri,
-            "thumb_url": track.artwork,
-            "callback_id": "add_song_to_queue",
-            "actions": [
-                {
-                    "name": "add_song_to_queue",
-                    "text": "Add to queue",
-                    "style": "primary",
-                    "type": "button",
-                    "value": track.uri
-                }
-            ]
-        }
     }
 }
 
