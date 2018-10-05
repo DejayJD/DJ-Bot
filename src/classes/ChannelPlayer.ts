@@ -6,14 +6,14 @@ import {Service} from "../services/ServiceManager";
 import {Track} from "../models/Track";
 import {SpotifyService} from "../services/SpotifyService";
 import * as Timeout from 'await-timeout';
+import * as _ from "lodash";
 
 export class ChannelPlayer {
-
     channel_id: number;
     channel_name: string;
     currentSong?: Track = {  // Current song uri + start time
         uri: 'spotify:track:2fTjkEmR1t7J4WICztg136',
-        startTime: new Date()
+        startTime: new Date(),
     };
     songHistory: any[] = []; // ["uri1", "uri2", "uri3"] -- List of previous songs
     currentDevices: any[] = [];
@@ -39,16 +39,20 @@ export class ChannelPlayer {
             await this.spotifyApi.play(playData);
         }
         catch (e) {
-            console.error('unable to sync music =( playData = ');
+            console.error('unable to sync music. playData = ');
             console.error(playData);
+            console.error('access_token = ' + user['access_token']);
             console.error(e);
         }
     }
 
     async scheduleSongTransition(currentSong, users) {
-        await Timeout.set(currentSong['duration_ms']);
-        console.log("song is finished. Going to next song!");
-        this.nextSong(users);
+        let timer = new Timeout();
+        this.currentSong.timer = timer;
+        timer.set(currentSong['duration_ms']).then(()=>{
+            this.nextSong(users);
+        });
+
     }
 
     syncUsers(users) {
@@ -71,6 +75,7 @@ export class ChannelPlayer {
 
     async getUsersNextSong(user) {
         try {
+            this.spotifyApi.setAccessToken(user['access_token']);
             let tracks = await this.spotifyApi.getPlaylistTracks(user.playlist_id);
             return tracks.body.items[0];
         }
@@ -80,37 +85,47 @@ export class ChannelPlayer {
         }
     }
 
-    updateCurrentSong(songUri) {
+    updateCurrentSong(track) {
         this.currentSong = {
-            uri: songUri,
-            startTime: new Date()
+            uri: track['uri'],
+            startTime: new Date(),
+            duration_ms: track['duration_ms']
+        }
+    }
+
+    clearCurrentSong() {
+        if (!_.isNil(this.currentSong.timer)) {
+            this.currentSong.timer.clear();
         }
     }
 
     async nextSong(users) {
-        // this.goToNextDj();
+        let nextDj = await this.goToNextDj();
         //TODO: Implement DJ queue
-        let nextSong = await this.getUsersNextSong(users[0]);
-        this.moveTopSongToBottom(users[0]);
+        let nextSong = await this.getUsersNextSong(nextDj);
+        if (_.isNil(nextSong)) {
+            console.error("unable to find users nextSong! user = " + JSON.stringify(nextDj));
+        }
+        this.moveTopSongToBottom(nextDj);
         this.bot.sendWebhook({
             text: 'Now playing ' + nextSong.track['name'],
             channel: this.channel_name,
-        },function(err,res) {
-            if (err) {
-                // ...
-            }
-        });
-        this.updateCurrentSong(nextSong.track['uri']);
+        },function(err,res) {});
+        this.updateCurrentSong(nextSong.track);
+
+        //TODO: figure out listeners logic
         this.scheduleSongTransition(nextSong.track, users);
         this.syncUsers(users);
     }
 
     //TODO: add DJ logic
     goToNextDj() {
+        this.cycleFirstArrayItem(this.djQueue);
+        return this.djQueue[0];
     }
 
     addDj(dj) {
-        //TODO: find and add a dj to the dj queue
+        this.djQueue.push(dj);
     }
 
     removeDj(dj) {
@@ -122,12 +137,14 @@ export class ChannelPlayer {
     }
 
 
-    // cycleFirstArrayItem(array) {
-    //     let firstItem = array[0];
-    //     array = array.shift();
-    //     array.push(firstItem);
-    //     return array;
-    // }
+    cycleFirstArrayItem(array) {
+        if (array.length > 1) {
+            let firstItem = array[0];
+            array = array.shift();
+            array.push(firstItem);
+        }
+        return array;
+    }
 
     getCurrentDJ() {
         return this.djQueue[0];

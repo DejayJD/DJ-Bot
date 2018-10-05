@@ -8,7 +8,6 @@ import {User} from "../models/User";
 import {UserService} from "../services/UserService";
 import {Service} from "../services/ServiceManager";
 import {SpotifyService} from "../services/SpotifyService";
-import * as Timeout from 'await-timeout';
 
 export class App {
 
@@ -17,7 +16,7 @@ export class App {
     spotifyApi: any;
     userService: UserService;
     spotifyService: SpotifyService;
-    bot : any;
+    bot: any;
 
     constructor() {
         this.userService = Service.getService(UserService);
@@ -34,31 +33,47 @@ export class App {
     getUserChannel(user) {
         let channel = _.find(this.channels, {channel_id: user['channel']['id']});
         if (_.isNil(channel)) {
-            console.error(`Unable to find user channel!\nuser:${JSON.stringify(user)}`);
+            console.error(`Unable to find user channel with id ${user['channel']['id']}`);
+            if (!_.isNil(user['channel'])) {
+                console.error("Creating channel now...");
+                channel = this.createChannel(user.channel, [user]);
+                return channel;
+            }
             return;
         }
         return channel;
     }
 
-    skipToNextSong(user) {
+    async skipToNextSong(user) {
         let channel = this.getUserChannel(user);
+        if(channel.djQueue.length === 0) {
+            return "There are currently no users in the DJ Queue. Type /dj to become a DJ!";
+        }
+        channel.clearCurrentSong();
+        user = await this.userService.getUser(user, 'context');
         channel.nextSong([user]);
     }
 
     createChannel(channel, initialUsers: User[] = []) {
         if (!this.channelExists(channel.id)) {
             let newChannel = new ChannelPlayer(channel['id'], channel['name'], this.bot);
-            newChannel.djQueue = [];
-            newChannel.djQueue.push(..._.map(initialUsers, 'user_uuid'));
+            // newChannel.djQueue = [];
+            // newChannel.djQueue.push(..._.map(initialUsers, 'user_uuid'));
             this.channels.push(newChannel);
+            return newChannel;
         }
         else {
-            console.log("Channel already exists!");
         }
     }
 
     createUser(userData) {
         this.userService.createUser(userData);
+    }
+
+    async addDj(user) {
+        let channel = this.getUserChannel(user);
+        user = this.userService.getUser(user, 'context');
+        channel.addDj(user);
     }
 
     async addToUserPlaylist(userId, trackData, context = 'slack') {
@@ -74,8 +89,16 @@ export class App {
         return user;
     }
 
-    async searchSongs(searchString) {
-        let data = await this.spotifyApi.searchTracks(searchString);
-        return data.body;
+    async searchSongs(user, searchString) {
+        user = await this.userService.getUser(user, 'context');
+        try {
+            let data = await this.spotifyService.callSpotifyApi(user, 'searchTracks', searchString);
+            // let data = await this.spotifyApi.searchTracks(searchString);
+            return data.body;
+        }
+        catch (e) {
+            console.error(e);
+            console.error("Unable to search for songs. access_token = " + user['access_token']);
+        }
     }
 }

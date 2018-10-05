@@ -6,6 +6,8 @@ import {User} from "./User";
 export class Track {
     uri: string;
     startTime?: Date;
+    timer? : any;
+    duration_ms? : any;
 
     //TODO: Planning to use these eventually
     listeners?: User[];

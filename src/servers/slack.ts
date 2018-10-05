@@ -26,7 +26,8 @@ function init(app) {
     const slashCommands = {
         "/sync": sync,
         "/song": searchSongs,
-        "/skip": skipToNext
+        "/skip": skipToNext,
+        "/dj": addDj
     };
 
     const buttonCommands = {
@@ -34,9 +35,9 @@ function init(app) {
         "add_song_to_queue": addSongToQueue
     };
 
-    controller.on('slash_command', function (bot, message) {
+    controller.on('slash_command', async function (bot, message) {
         try {
-            let userLoggedIn = userService.userIsLoggedIn(createSlackObject(message), 'slack');
+            let userLoggedIn = await userService.userIsLoggedIn(createSlackObject(message), 'slack');
             let callback = userLoggedIn ? slashCommands[message.command] : requestLogin;
             callback(bot, message);
         }
@@ -60,10 +61,16 @@ function init(app) {
         bot.replyPrivate(message, generateSpotifyLoginButton());
     }
 
-    function skipToNext(bot, message) {
+    async function skipToNext(bot, message) {
         let user = userService.getSlackUser(createSlackObject(message));
-        app.skipToNextSong(user);
-        bot.reply(message, user.context.user.name + ' requested to skip to next song');
+        let errMessage = await app.skipToNextSong(user);
+        if (!_.isNil(errMessage)) {
+            bot.reply(message, errMessage);
+        }
+        else {
+            bot.reply(message, user.context.user.name + ' requested to skip to next song');
+        }
+
     }
 
     async function getSpotifyLoginLink(bot, message) {
@@ -77,11 +84,19 @@ function init(app) {
         let userId = message['user'];
         let trackData = message['actions'][0];
         app.addToUserPlaylist(userId, trackData);
+        bot.replyInteractive(message, 'Song added!')
+    }
+
+    function addDj(bot, message) {
+        let user = createSlackObject(message);
+        app.addDj(user);
+        bot.reply(message, user.context.user.name + " has become a DJ");
     }
 
     async function searchSongs(bot, message) {
         try {
-            let searchResults = await app.searchSongs(message.text);
+            let user = createSlackObject(message);
+            let searchResults = await app.searchSongs(user, message.text);
             let slicedResults = searchResults.tracks.items.slice(0, 5);
             slicedResults = _.map(slicedResults, (track) => {
                 return {
@@ -131,7 +146,7 @@ function init(app) {
         if (team == null) {
             team = {
                 id: message['raw_message']['team_id'],
-                name: message['raw_message']['team_name']
+                domain: message['raw_message']['team_domain']
             }
         }
         return {
@@ -139,7 +154,6 @@ function init(app) {
             context: {
                 type: 'slack',
                 user: user,
-
                 team: team,
             }
         };

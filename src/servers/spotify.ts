@@ -16,7 +16,7 @@ const app = express();
 app.use(cookieParser());
 const port = 3001;
 
-function init (mainApp) {
+function init(mainApp) {
     let stateKey = 'spotify_auth_state';
     let userService = Service.getService(UserService);
 
@@ -29,7 +29,6 @@ function init (mainApp) {
         }
         return text;
     };
-
 
 
     app.get('/login', function (req, res) {
@@ -63,14 +62,14 @@ function init (mainApp) {
 
 
     });
-    app.get('/callback', function (req, res) {
+    app.get('/callback', async function (req, res) {
         // your application requests refresh and access tokens
         let code = req.query.code || null;
 
         let state = req.query.state || null;
         let storedState = req.cookies ? req.cookies[stateKey] : null;
         let user_uuid = req.cookies['user_uuid'] || null;
-        let existingUser = userService.getUser({user_uuid:user_uuid});
+        let existingUser = await userService.getUser({user_uuid: user_uuid});
 
         // after checking the state parameter
 
@@ -86,7 +85,8 @@ function init (mainApp) {
                 querystring.stringify({
                     error: 'unable to find user_uuid' + user_uuid
                 }));
-        } {
+        }
+        {
             res.clearCookie(stateKey);
             var authOptions = {
                 url: 'https://accounts.spotify.com/api/token',
@@ -100,14 +100,22 @@ function init (mainApp) {
                 },
                 json: true
             };
-            request.post(authOptions, function (error, response, body) {
+            request.post(authOptions, async function (error, response, body) {
                 if (!error && response.statusCode === 200) {
 
                     let access_token = body.access_token;
                     let refresh_token = body.refresh_token;
-                    userService.setUserSpotifyCredentials(user_uuid, access_token, refresh_token);
+                    try {
+                        await userService.setUserSpotifyCredentials(user_uuid, access_token, refresh_token);
+                        res.status(200).send('Successfully logged in!')
+                    }
+                    catch (e) {
+                        res.redirect('/#' +
+                            querystring.stringify({
+                                error: 'Unable to login to spotify. ¯\\_(ツ)_/¯'
+                            }));
+                    }
                     // mainApp.syncUser(user_uuid);
-                    res.status(200).send('Successfully logged in!')
                 } else {
                     res.redirect('/#' +
                         querystring.stringify({
@@ -120,8 +128,6 @@ function init (mainApp) {
     app.get('/test', function (req, res) {
         res.status(200).send("Server is working");
     });
-
-
 
 
     // TODO: Clean these up
@@ -185,4 +191,5 @@ function init (mainApp) {
 
     app.listen(port, () => console.log(`User login server listening on port ${port}!`));
 }
+
 module.exports = init;

@@ -2,7 +2,7 @@ import {User} from "../models/User";
 import * as _ from "lodash";
 import {Service} from "./ServiceManager";
 import {SpotifyService} from "./SpotifyService";
-import {db, user} from "./DatabaseConnection";
+import {DbUser} from "./DatabaseConnection";
 
 export class UserService {
     maxUsers;
@@ -18,18 +18,16 @@ export class UserService {
     }
 
     async getUsers() {
-        this.users = await user.find();
-        console.log(this.users);
+        this.users = await DbUser.find();
     }
 
     async createUser(userData) {
         let newUser = new User(userData);
-        let dbUser = new user(newUser); //adds the user to the DB
+        let dbUser = new DbUser(newUser); //adds the user to the DB
         try {
             await dbUser.save();
-            console.log("created new user in db");
         }
-        catch(e) {
+        catch (e) {
             console.error(e);
             console.error("Unable to save user to db");
         }
@@ -38,27 +36,41 @@ export class UserService {
     }
 
     async getUser(userData, identifier = 'user_uuid') {
-        let dbUser = await user.find({identifier:userData[identifier]});
+        let userQuery = {};
+        userQuery[identifier] = _.get(userData, identifier);
+        let dbUser = await DbUser.find(userQuery);
         if (!_.isNil(dbUser)) {
             if (dbUser.length > 0) {
-                console.log("Found existing user!");
-                console.log(dbUser);
-                //TODO: refresh spotify token
-                return dbUser;
+                return dbUser[0];
             }
         }
     }
 
     async setUserSpotifyCredentials(user_uuid, access_token, refresh_token) {
-        let user = this.getUser({user_uuid: user_uuid});
+        let user = await this.getUser({user_uuid: user_uuid});
         if (_.isNil(user)) {
             console.error("Unable to set credentials for user with token: " + user_uuid);
             return;
         }
-        user['access_token'] = access_token;
-        user['refresh_token'] = refresh_token;
-        user = await this.getUserPlaylistId(user);
+        let playlist_id = await this.getUserPlaylistId(user);
+        try {
+            await this.updateUser(user, {
+                access_token: access_token,
+                refresh_token: refresh_token,
+                playlist_id: playlist_id
+            });
+        }
+        catch (e) {
+            console.error("unable to save user");
+            console.error(e);
+        }
+    }
 
+    async updateUser(user, newValues) {
+        DbUser.updateOne({_id: user['_id']},
+            {
+                $set: newValues
+            }).exec().then().catch();
     }
 
     async getUserPlaylistId(user) {
@@ -74,8 +86,7 @@ export class UserService {
                 //TODO: Create a playlist when an existing one is not found
                 this.createSpotifyPlaylist(user);
             }
-            user.playlist_id = djBotPlaylist.id;
-            return user;
+            return djBotPlaylist.id
         }
         catch (e) {
             console.error("Unable to find a DJ-Bot~Queue playlist");
@@ -89,17 +100,13 @@ export class UserService {
         });
     }
 
-    userIsLoggedIn(userData, context = 'slack') {
-        if (context == 'slack') {
-            //Find user by slack id and check their access token
-            return !_.isNil(_.find(this.users, (user) => {
-                return user.context.user.id === userData.context.user.id && !_.isNil(user['access_token']);
-            }));
-        }
+    async userIsLoggedIn(userData) {
+        let existingUser = await this.getUser(userData, 'context');
+        return !_.isNil(existingUser);
     }
 
     async loginUser(user) {
-        let existingUser = await this.getUser(user);
+        let existingUser = await this.getUser(user, 'context');
         if (_.isNil(existingUser)) {
             user = await this.createUser(user);
         }
@@ -107,7 +114,6 @@ export class UserService {
             user = existingUser;
         }
         user['active'] = true;
-        console.log(user);
         return user;
     }
 
