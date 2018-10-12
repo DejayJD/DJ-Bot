@@ -7,6 +7,7 @@
     "build-w": "tsc --p tsconfig.json --watch",
     "build": "tsc --p tsconfig.json",
     "run": "node server.js",
+    "production": "forever node server.js --spinSleepTime 3000",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -48,6 +49,7 @@
     "slack-client": "^2.0.6",
     "spotify-web-api-node": "^4.0.0",
     "typescript": "^3.1.1",
-    "uuid": "^3.3.2"
+    "uuid": "^3.3.2",
+    "forever":"^0.15.3"
   }
 }

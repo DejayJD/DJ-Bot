@@ -2,3 +2,5 @@ node_modules/
 .idea/
 environmentVars.js
 db_slack_bot_a/
+data/
+*.pem

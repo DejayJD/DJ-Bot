@@ -44,6 +44,7 @@ function init(mainApp) {
             'playlist-read-private',
             'playlist-modify-private',
             'user-top-read',
+            'user-read-recently-played',
             'playlist-modify-public',
             'playlist-read-collaborative',
             'user-read-email',

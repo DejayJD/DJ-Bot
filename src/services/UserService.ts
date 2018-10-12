@@ -66,7 +66,6 @@ export class UserService {
         };
         user = _.merge(user, newValues);
         newValues['playlist_id'] = await this.getUserPlaylistId(user);
-        console.log(newValues);
         try {
             await this.updateUser(user, newValues);
         }
@@ -159,7 +158,6 @@ export class UserService {
         let newPlaylistOpts = {
             description: 'This is where you can put your songs to play with DJ-Bot! Just drag them in here and get to DJing!'
         };
-        console.log("creating new user playlist");
         return await this.spotifyService.spotifyApi(user, 'createPlaylist', userId, this.playlistQueueName, newPlaylistOpts);
     }
 
