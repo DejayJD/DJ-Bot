@@ -1,7 +1,7 @@
 import * as SpotifyWebApi from 'spotify-web-api-node'
 import * as _ from "lodash";
 import {UserService} from "./UserService";
-import {DbUser} from "./DatabaseConnection";
+import {User} from "../models/DatabaseConnection";
 
 export class SpotifyService {
     spotifyApiObj: any;
@@ -41,6 +41,12 @@ export class SpotifyService {
                     console.error(user);
                 }
             }
+            if (e.statusCode === 403) {
+                return 'not-premium';
+            }
+            if (e.statusCode === 404) {
+                return 'spotify-issue';
+            }
             console.error(e);
         }
     }
@@ -50,11 +56,8 @@ export class SpotifyService {
         this.spotifyApiObj.setRefreshToken(user['refresh_token']);
     }
 
-    async addToUserPlaylist(userId, trackData, context) {
-        let user = _.find(this.userService.users, (data) => {
-            return data['context']['user']['id'] === userId && data['context']['type'] == context;
-        });
-        this.setAccessToken(user);
+    async addToUserPlaylist(user, trackData) {
+        user = await this.userService.getUser(user, 'context');
         let playlist_id = user['playlist_id'];
         try {
             await this.spotifyApi(user, 'addTracksToPlaylist', playlist_id, [trackData['value']], {position: 0})

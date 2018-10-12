@@ -1,20 +1,35 @@
+import * as _ from "lodash";
+
 export class SlackMessages {
     static spotifyColor = "#1DB954";
 
-    static NowPlayingMessage(track) {
+    static NowPlayingMessage(track, user) {
         return {
-            "fallback": "Now Playing " + track.name,
-            "color": this.spotifyColor,
-            "author_name": track.artists,
-            "title": track.name,
-            "title_link": track.uri,
-            "thumb_url": track.artwork
+            "text": `Now Playing *${track.name}* requested by <@${user.context.user.name}>`,
+            "attachments": [{
+                "fallback": "Now Playing " + track.name,
+                "color": this.spotifyColor,
+                "author_name": track.artists,
+                "title": track.name,
+                "title_link": track.uri,
+                "thumb_url": track.artwork
+            }]
+        }
+    }
+
+    static parseTrack(track) {
+        return {
+            uri: track.uri,
+            name: track.name,
+            artwork: track.album.images[0].url,
+            artists: _.join(_.map(track.artists, 'name'), ', '),
+            id: track.id
         }
     }
 
     static AddTrackButton(track) {
         return {
-            "fallback": "err dev didnt know what to put here",
+            "fallback": "Song results found",
             "color": this.spotifyColor,
             "author_name": track.artists,
             "title": track.name,

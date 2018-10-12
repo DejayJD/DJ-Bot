@@ -21,11 +21,13 @@
 import * as _ from "lodash";
 import {UserService} from "./UserService";
 import {SpotifyService} from "./SpotifyService";
+import {ChannelService} from "./ChannelService";
 
 let Service = (function () {
     let ServiceDirectory = [
         {prototype: UserService, instance: null},
         {prototype: SpotifyService, instance: null},
+        {prototype: ChannelService, instance: null},
     ];
 
     function createInstance(prototype, constructorParams) {
@@ -35,7 +37,6 @@ let Service = (function () {
     return {
         getService: function (serviceType, ...constructorParams) {
             let service = _.find(ServiceDirectory, {prototype: serviceType});
-            // console.log(ServiceDirectory);
             if (_.isNil(service)) {
                 console.error("Unable to find service of type " + serviceType);
             }

@@ -8,6 +8,8 @@ import {UserService} from "../services/UserService";
 import {Service} from "../services/ServiceManager";
 import {SpotifyService} from "../services/SpotifyService";
 import {Observable} from "rxjs/index";
+import {ChannelService} from "../services/ChannelService";
+
 
 export class App {
 
@@ -16,15 +18,29 @@ export class App {
     spotifyApi: any;
     userService: UserService;
     spotifyService: SpotifyService;
-    outgoingMessages : Observable<any>;
+    channelService: ChannelService;
+    outgoingMessages: Observable<any>;
     outgoingMessageEmitter;
+
+    users: string[]; //Keeps a list of user uuids
 
     constructor() {
         this.userService = Service.getService(UserService);
         this.spotifyService = Service.getService(SpotifyService);
+        this.channelService = Service.getService(ChannelService);
         this.spotifyApi = this.spotifyService.spotifyApi;
         this.outgoingMessages = Observable.create(e => this.outgoingMessageEmitter = e);
         this.outgoingMessages.subscribe(this.outgoingMessageEmitter);
+        this.getChannels();
+    }
+
+    async getChannels() {
+        let dbChannels = await this.channelService.getChannels();
+        this.channels = _.map(dbChannels, (channel) => {
+            let newChannel = new ChannelPlayer(channel);
+            this.subscribeToChannelMessages(newChannel);
+            return newChannel;
+        });
     }
 
     channelExists(channel_id) {
@@ -40,6 +56,7 @@ export class App {
             if (!_.isNil(user['channel'])) {
                 console.error("Creating channel now...");
                 channel = this.createChannel(user.channel, [user]);
+                console.log("Created channel");
                 return channel;
             }
             return;
@@ -47,33 +64,39 @@ export class App {
         return channel;
     }
 
+
     async skipToNextSong(user) {
         let channel = this.getUserChannel(user);
-        if(channel.djQueue.length === 0) {
-            return "There are currently no users in the DJ Queue. Type /dj to become a DJ!";
+        if (channel.dj_queue.length === 0) {
+            return "no-dj";
         }
         channel.clearCurrentSong();
-        user = await this.userService.getUser(user, 'context');
-        channel.nextSong([user]);
+        // user = await this.userService.getUser(user, 'context');
+        channel.nextSong();
     }
 
     subscribeToChannelMessages(channel) {
-        channel.outgoingMessages.subscribe((data)=>{
+        channel.outgoingMessages.subscribe((data) => {
             this.outgoingMessageEmitter.next(data);
         });
     }
 
-    //TODO: implement channel service
     createChannel(channel, initialUsers = []) {
         if (!this.channelExists(channel.id)) {
-            let newChannel = new ChannelPlayer(channel['id'], channel['name']);
-            // newChannel.djQueue = [];
-            // newChannel.djQueue.push(..._.map(initialUsers, 'user_uuid'));
+            let channel_listeners = _.map(initialUsers, 'user_uuid');
+            let newChannel = new ChannelPlayer({
+                    channel_id: channel['id'],
+                    channel_name: channel['name'],
+                    channel_listeners: channel_listeners
+                }
+            );
             this.channels.push(newChannel);
             this.subscribeToChannelMessages(newChannel);
+            this.channelService.createChannel(newChannel);
             return newChannel;
         }
         else {
+            console.error("idk what to do, I have to create a channel that already exists?")
         }
     }
 
@@ -82,13 +105,19 @@ export class App {
     }
 
     async addDj(user) {
+        user = await this.userService.getUser(user, 'context');
         let channel = this.getUserChannel(user);
-        user = this.userService.getUser(user, 'context');
-        channel.addDj(user);
+        return channel.addDj(user);
     }
 
-    async addToUserPlaylist(userId, trackData, context = 'slack') {
-        await this.spotifyService.addToUserPlaylist(userId, trackData, context)
+    async removeDj(user) {
+        let channel = this.getUserChannel(user);
+        user = await this.userService.getUser(user, 'context');
+        return channel.removeDj(user);
+    }
+
+    async addToUserPlaylist(user, trackData) {
+        await this.spotifyService.addToUserPlaylist(user, trackData)
     }
 
     async loginUser(userData) {
