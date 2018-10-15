@@ -5,5 +5,5 @@ COPY package.json /usr/dist/app/
 RUN npm install -g forever
 RUN npm install
 COPY . /usr/dist/app
-EXPOSE 3000 3001 80
+EXPOSE 3000 3001
 CMD [ "npm", "start"]
