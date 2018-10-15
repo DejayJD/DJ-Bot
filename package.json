@@ -6,9 +6,9 @@
   "scripts": {
     "build-w": "tsc --p tsconfig.json --watch",
     "build": "tsc --p tsconfig.json",
-    "run": "node server.js",
+    "run": "nodemon server.js",
     "production": "forever node server.js --spinSleepTime 3000",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo 'Error: no test specified' && exit 1"
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,9 @@
     "dj",
     "music"
   ],
+  "nodemonConfig": {
+    "delay": "2000"
+  },
   "bugs": {
     "url": "https://github.com/DejayJD/DJ-Bot/issues"
   },

@@ -1,9 +1,7 @@
 FROM node:latest
-RUN mkdir -p /usr/dist/app
-WORKDIR /usr/dist/app
-COPY package.json /usr/dist/app/
-RUN npm install -g forever
+ADD . /dist
+WORKDIR /dist
 RUN npm install
-COPY . /usr/dist/app
+RUN npm install -g nodemon
 EXPOSE 3000 3001
-CMD [ "npm", "start"]
+CMD [ "nodemon", "server.js"]
