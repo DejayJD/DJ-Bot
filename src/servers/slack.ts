@@ -87,7 +87,7 @@ function init(app) {
 
     async function sync(bot, message) {
         let user = userService.getSlackUser(createSlackObject(message));
-        let result = await app.getUserChannel(user).syncUser(user);
+        let result = await app.getChannel(message).syncUser(user);
         if (result === 'no-song') {
             bot.replyPrivate(message, "There are currently no songs playing. Type /dj to get some tunes going!");
         }
@@ -104,13 +104,12 @@ function init(app) {
     }
 
     async function stopUserListening(bot, message) {
-        let user = userService.getSlackUser(createSlackObject(message));
-        let result = await app.getUserChannel(user).removeListener(user);
+        let result = await app.getChannel(message).removeListener(message);
         if (result === 'listener-doesnt-exist') {
-            bot.replyPrivate(message, "You are not currently sync-ing up music.");
+            bot.replyPrivate(message, "You are not currently sync-ing up music to this channel.");
         }
         else if (result === 'removed-listener') {
-            bot.replyPrivate(message, "You are no longer sync-ing music");
+            bot.replyPrivate(message, "You are no longer sync-ing music to this channel");
         }
         else {
             bot.replyPrivate(message, 'Whoops, something went wrong.');
@@ -118,15 +117,12 @@ function init(app) {
     }
 
     async function getChannelListeners(bot, message) {
-        let user = userService.getSlackUser(createSlackObject(message));
-        console.log(JSON.stringify(message));
         let channel = await app.getChannel(message);
-        bot.replyPrivate(message, "Listening right now: " + _.join(channel.listeners, ', '));
+        bot.replyPrivate(message, "Listening right now: " + _.join(channel.channel_listeners, ', '));
     }
 
     async function getPlaying(bot, message) {
-        let user = userService.getSlackUser(createSlackObject(message));
-        let channel = await app.getUserChannel(user);
+        let channel = await app.getChannel(message);
         let result = channel.getCurrentSong();
         if (result === 'no-song-playing') {
             bot.replyPrivate(message, "There are currently no songs playing. Type /dj to get some tunes going!");
@@ -146,8 +142,7 @@ function init(app) {
     }
 
     async function getDjList(bot, message) {
-        let user = userService.getSlackUser(createSlackObject(message));
-        let channel = await app.getUserChannel(user);
+        let channel = await app.getChannel(message);
         let result = await channel.getCurrentDjs();
         if (Array.isArray(result)) {
             if (result.length === 0) {
