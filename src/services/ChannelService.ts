@@ -8,7 +8,13 @@ export class ChannelService {
     async getChannel(channel, query = 'channel_id') {
         let queryObj = {};
         queryObj[query] = channel[query];
-        return await Channel.find(queryObj);
+        let channels = await Channel.find(queryObj);
+        return channels[0];
+    }
+
+    async queryChannels(query) {
+        let channels = await Channel.find(query);
+        return channels;
     }
 
     async createChannel(channel) {
