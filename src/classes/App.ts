@@ -60,6 +60,10 @@ export class App {
         return channel;
     }
 
+    async getChannel(channelData) {
+        return await this.channelService.getChannel(channelData);
+    }
+
 
     async skipToNextSong(user) {
         let channel = this.getUserChannel(user);

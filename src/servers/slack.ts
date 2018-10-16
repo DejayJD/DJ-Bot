@@ -119,9 +119,9 @@ function init(app) {
 
     async function getChannelListeners(bot, message) {
         let user = userService.getSlackUser(createSlackObject(message));
-        console.log(message);
-        let channel = await app.getUserChannel(user);
-        console.log(channel);
+        console.log(JSON.stringify(message));
+        let channel = await app.getChannel(user);
+        bot.replyPrivate(message, "Listening right now: " + _.join(channel.listeners, ', '));
     }
 
     async function getPlaying(bot, message) {
