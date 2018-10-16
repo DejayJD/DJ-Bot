@@ -52,11 +52,8 @@ export class App {
     getUserChannel(user) {
         let channel = _.find(this.channels, {channel_id: user['channel']['id']});
         if (_.isNil(channel)) {
-            console.error(`Unable to find user channel with id ${user['channel']['id']}`);
             if (!_.isNil(user['channel'])) {
-                console.error("Creating channel now...");
-                channel = this.createChannel(user.channel, [user]);
-                console.log("Created channel");
+                channel = this.getOrCreateChannel(user.channel, [user]);
                 return channel;
             }
             return;
