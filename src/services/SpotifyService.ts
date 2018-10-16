@@ -1,4 +1,4 @@
-import * as SpotifyWebApi from 'spotify-web-api-node'
+import * as SpotifyWebApi from '../../spotify-web-api-node';
 import * as _ from "lodash";
 import {UserService} from "./UserService";
 import {User} from "../models/DatabaseConnection";

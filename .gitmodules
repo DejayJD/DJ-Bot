@@ -1,0 +1,4 @@
+[submodule "spotify-web-api-node"]
+	path = spotify-web-api-node
+	url = https://github.com/DejayJD/spotify-web-api-node.git
+	branch = master
