@@ -95,7 +95,7 @@ export class App {
             );
             this.channels.push(newChannel);
             this.subscribeToChannelMessages(newChannel);
-            this.channelService.createChannel(newChannel);
+            this.channelService.createChannel(newChannel); // write to db
             return newChannel;
         }
         else {
