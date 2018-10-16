@@ -58,7 +58,12 @@ function init(app) {
         try {
             let userLoggedIn = await userService.userIsLoggedIn(createSlackObject(message), 'slack');
             let callback = userLoggedIn ? slashCommands[message.command] : requestLogin;
-            callback(bot, message);
+            if (!_.isFunction(callback)) {
+                callback(bot, message);
+            }
+            else {
+                bot.replyPrivate(message, "This command is coming soon!");
+            }
         }
         catch (e) {
             bot.replyPrivate(message, "Whoops, something went wrong with that command!");

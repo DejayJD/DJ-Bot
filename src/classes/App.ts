@@ -12,7 +12,6 @@ import {ChannelService} from "../services/ChannelService";
 
 
 export class App {
-
     channelLimit: number = 100;
     channels: ChannelPlayer[] = [];
     spotifyApi: any;
