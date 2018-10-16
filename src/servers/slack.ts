@@ -31,7 +31,10 @@ function init(app) {
         "/stepdown": stepDownDj,
         "/stop": stopUserListening,
         "/djs": getDjList,
-        "/playing": getPlaying
+        "/playing": getPlaying,
+        "/dj-help": comingSoon,
+        "/dj-suggestion":comingSoon,
+        "/listening":getChannelListeners
     };
 
     const buttonCommands = {
@@ -58,12 +61,7 @@ function init(app) {
         try {
             let userLoggedIn = await userService.userIsLoggedIn(createSlackObject(message), 'slack');
             let callback = userLoggedIn ? slashCommands[message.command] : requestLogin;
-            if (_.isFunction(callback)) {
-                callback(bot, message);
-            }
-            else {
-                bot.replyPrivate(message, "This command is coming soon!");
-            }
+            callback(bot, message);
         }
         catch (e) {
             bot.replyPrivate(message, "Whoops, something went wrong with that command!");
@@ -74,6 +72,7 @@ function init(app) {
     controller.hears('hello', 'direct_message', function (bot, message) {
         bot.reply(message, 'Hello!');
     });
+
 
     function displayNowPlaying(bot, data) {
         bot.sendWebhook(
@@ -100,6 +99,10 @@ function init(app) {
         }
     }
 
+    function comingSoon(bot, message) {
+        bot.replyPrivate(message, "That command is still in development and coming soon...");
+    }
+
     async function stopUserListening(bot, message) {
         let user = userService.getSlackUser(createSlackObject(message));
         let result = await app.getUserChannel(user).removeListener(user);
@@ -112,6 +115,13 @@ function init(app) {
         else {
             bot.replyPrivate(message, 'Whoops, something went wrong.');
         }
+    }
+
+    async function getChannelListeners(bot, message) {
+        let user = userService.getSlackUser(createSlackObject(message));
+        console.log(message);
+        let channel = await app.getUserChannel(user);
+        console.log(channel);
     }
 
     async function getPlaying(bot, message) {
