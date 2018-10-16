@@ -43,7 +43,7 @@ export class App {
         });
     }
 
-    channelExists(channel_id) {
+    async channelExists(channel_id) {
         return _.find(this.channels, (channel) => {
             return channel['id'] == channel_id;
         });
@@ -81,8 +81,11 @@ export class App {
         });
     }
 
-    createChannel(channel, initialUsers = []) {
-        if (!this.channelExists(channel.id)) {
+    async getOrCreateChannel(channel, initialUsers = []) {
+        channel['channel_id'] = channel['id'];
+        let existingChannel = await this.channelService.getChannel(channel);
+        console.log('Channel already exists! Channel == ' + JSON.stringify(existingChannel));
+        if (_.isNil(existingChannel)) {
             let channel_listeners = _.map(initialUsers, 'user_uuid');
             let newChannel = new ChannelPlayer({
                     channel_id: channel['id'],
@@ -96,7 +99,7 @@ export class App {
             return newChannel;
         }
         else {
-            console.error("idk what to do, I have to create a channel that already exists?")
+            return existingChannel;
         }
     }
 
@@ -124,7 +127,7 @@ export class App {
         //add channel
         let user = await this.userService.loginUser(userData);
         if (!_.isNil(user.channel)) {
-            this.createChannel(user.channel, [user]);
+            await this.getOrCreateChannel(user.channel, [user]);
         }
         return user;
     }
