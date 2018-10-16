@@ -84,7 +84,6 @@ export class App {
     async getOrCreateChannel(channel, initialUsers = []) {
         channel['channel_id'] = channel['id'];
         let existingChannel = await this.channelService.getChannel(channel);
-        console.log('Channel already exists! Channel == ' + JSON.stringify(existingChannel));
         if (_.isNil(existingChannel)) {
             let channel_listeners = _.map(initialUsers, 'user_uuid');
             let newChannel = new ChannelPlayer({
