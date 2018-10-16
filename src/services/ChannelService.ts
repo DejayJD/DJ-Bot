@@ -19,6 +19,7 @@ export class ChannelService {
             dj_queue: channel.dj_queue,
             channel_listeners: channel.channel_listeners
         };
+        console.log("Creating channel");
         let newChannel = new Channel(channelModel); //adds the user to the DB
         try {
             await newChannel.save();

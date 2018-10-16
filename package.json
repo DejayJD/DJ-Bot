@@ -41,7 +41,9 @@
     "cors": "^2.8.4",
     "dotenv": "^6.0.0",
     "express": "^4.16.3",
+    "forever": "^0.15.3",
     "lodash": "^4.17.11",
+    "log-timestamp": "^0.2.1",
     "mongodb": "^3.1.6",
     "mongoose": "^5.3.1",
     "querystring": "^0.2.0",
@@ -52,7 +54,6 @@
     "slack-client": "^2.0.6",
     "spotify-web-api-node": "^4.0.0",
     "typescript": "^3.1.1",
-    "uuid": "^3.3.2",
-    "forever":"^0.15.3"
+    "uuid": "^3.3.2"
   }
 }

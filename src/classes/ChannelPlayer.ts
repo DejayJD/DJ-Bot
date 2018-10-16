@@ -181,6 +181,7 @@ export class ChannelPlayer {
 
     goToNextDj() {
         this.cycleFirstArrayItem(this.dj_queue);
+        this.channelService.updateDjQueue(this, this.dj_queue);
         return this.dj_queue[0];
     }
 

@@ -2,6 +2,7 @@
 //Import environment variables
 require('./environmentVars.js');
 require('./dist/services/ServiceManager.js');
+require('log-timestamp')(function() { return new Date().toLocaleString() + ' --- %s' })
 
 //Setup a new application object
 //If ever needing massive performance, this could be separated
