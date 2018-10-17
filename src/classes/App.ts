@@ -61,7 +61,7 @@ export class App {
         return channel;
     }
 
-    async getChannel(channelData) {
+    async getChannel(channelData) : Promise<ChannelPlayer> {
         let dbChannel = await this.channelService.getChannel(channelData);
         let playerChannel = _.find(this.channels, (channel)=>{
             return channel.channel_id == dbChannel.channel_id
