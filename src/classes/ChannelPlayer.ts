@@ -201,6 +201,7 @@ export class ChannelPlayer {
             return 'already-added';
         }
         else {
+            if ()
             this.dj_queue.push(dj);
             this.channelService.updateDjQueue(this, this.dj_queue);
             if (this.current_song == null) {
@@ -221,7 +222,11 @@ export class ChannelPlayer {
             _.remove(this.dj_queue, (queueDj) => {
                 return queueDj['user_uuid'] == dj['user_uuid'];
             });
+            if (this.dj_queue.length === 0) {
+                this.current_song = null;
+            }
             this.channelService.updateDjQueue(this, this.dj_queue);
+            this.channelService.updateCurrentSong(this, this.current_song);
             return 'removed';
         }
     }
