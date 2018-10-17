@@ -53,8 +53,6 @@ export class ChannelService {
     }
 
     async updateChannel(channel, newValues) {
-        console.log(channel);
-        // console.log ("updating id = " + channel['_id'] + "newValues = " + JSON.stringify((newValues)));
         Channel.updateOne({_id: channel['_id']},
             {
                 $set: newValues

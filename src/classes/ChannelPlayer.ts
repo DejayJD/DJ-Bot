@@ -231,7 +231,7 @@ export class ChannelPlayer {
                 return listener == user['user_uuid'];
             });
             this.channelService.updateChannelListeners(this, this.channel_listeners);
-
+            this.spotifyService.spotifyApi(user, 'pause');
             return 'removed-listener';
         }
     }
