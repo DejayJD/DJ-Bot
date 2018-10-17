@@ -110,10 +110,10 @@ function init(app : App) {
         let user = await userService.getUser(createSlackObject(message), 'context');
         let result = channel.removeListener(user);
         if (result === 'listener-doesnt-exist') {
-            bot.replyPrivate(message, "You are not currently sync-ing up music to this channel.");
+            bot.replyPrivate(message, "You are not currently listening to music in this channel.");
         }
         else if (result === 'removed-listener') {
-            bot.replyPrivate(message, "You are no longer sync-ing music to this channel");
+            bot.replyPrivate(message, "You are no longer listening to music in this channel");
         }
         else {
             bot.replyPrivate(message, 'Whoops, something went wrong.');
@@ -122,7 +122,13 @@ function init(app : App) {
 
     async function getChannelListeners(bot, message) {
         let channel = await app.getChannel(message);
-        bot.replyPrivate(message, "Listening right now: " + _.join(channel.channel_listeners, ', '));
+        let listeners = _.map(await channel.getChannelListeners(), 'username');
+        if (listeners.length > 0) {
+            bot.replyPrivate(message, "Listening right now: " + _.join(listeners, ', '));
+        }
+        else {
+            bot.replyPrivate(message, "Nobody is currently synced to the channel");
+        }
     }
 
     async function getPlaying(bot, message) {

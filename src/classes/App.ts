@@ -75,6 +75,7 @@ export class App {
     }
 
 
+
     async skipToNextSong(user) {
         let channel = this.getUserChannel(user);
         if (channel.dj_queue.length === 0) {

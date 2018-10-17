@@ -128,6 +128,15 @@ export class ChannelPlayer {
         }
     }
 
+    //Converts uuids to user objs
+    async getChannelListeners() {
+        let fullUserData = [];
+        for (let listener of this.channel_listeners) {
+            fullUserData.push(await this.userService.getUser({user_uuid:listener}));
+        }
+        return fullUserData;
+    }
+
     updateCurrentSong(track) {
         this.current_song = {
             uri: track['uri'],
