@@ -240,14 +240,19 @@ function init(app : App) {
         try {
             let user = createSlackObject(message);
             let searchResults = await app.searchSongs(user, message.text);
-            let slicedResults = searchResults.tracks.items.slice(0, 5);
-            slicedResults = _.map(slicedResults, (track) => {
-                return SlackMessages.parseTrack(track);
-            });
-            let attachments = _.map(slicedResults, (track) => {
-                return SlackMessages.AddTrackButton(track)
-            });
-            bot.replyPrivate(message, {'attachments': attachments});
+            if (searchResults.tracks.items.length === 0) {
+                bot.replyPrivate(message, 'No results found :(');
+            }
+            else {
+                let slicedResults = searchResults.tracks.items.slice(0, 5);
+                slicedResults = _.map(slicedResults, (track) => {
+                    return SlackMessages.parseTrack(track);
+                });
+                let attachments = _.map(slicedResults, (track) => {
+                    return SlackMessages.AddTrackButton(track)
+                });
+                bot.replyPrivate(message, {'attachments': attachments});
+            }
         }
         catch (e) {
             console.error(e);
