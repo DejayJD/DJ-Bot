@@ -5,9 +5,10 @@ import * as _ from "lodash";
 import {UserService} from "../services/UserService";
 import {Service} from "../services/ServiceManager";
 import {SlackMessages} from "../classes/SlackMessages";
+import {App} from "../classes/App";
 
 
-function init(app) {
+function init(app : App) {
     //I abstracted all the setup code out of this file, so that I can leave all the business logic here
     const controller = require('../../lib/bot_setup.js');
     const userService = Service.getService(UserService);
@@ -106,7 +107,8 @@ function init(app) {
 
     async function stopUserListening(bot, message) {
         let channel = await app.getChannel(message);
-        let result = channel.removeListener(message);
+        let user = await userService.getUser(this.createSlackObject(message), 'context');
+        let result = channel.removeListener(user);
         if (result === 'listener-doesnt-exist') {
             bot.replyPrivate(message, "You are not currently sync-ing up music to this channel.");
         }
