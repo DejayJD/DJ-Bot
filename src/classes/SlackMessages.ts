@@ -12,7 +12,16 @@ export class SlackMessages {
                 "author_name": track.artists,
                 "title": track.name,
                 "title_link": track.uri,
-                "thumb_url": track.artwork
+                "thumb_url": track.artwork,
+                "actions": [
+                    {
+                        "name": "add_reaction",
+                        "text": "Nice Play!",
+                        "style": "primary",
+                        "type": "button",
+                        "value": 'thumbsup'
+                    }
+                ]
             }]
         }
     }

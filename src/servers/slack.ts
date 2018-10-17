@@ -8,7 +8,7 @@ import {SlackMessages} from "../classes/SlackMessages";
 import {App} from "../classes/App";
 
 
-function init(app : App) {
+function init(app: App) {
     //I abstracted all the setup code out of this file, so that I can leave all the business logic here
     const controller = require('../../lib/bot_setup.js');
     const userService = Service.getService(UserService);
@@ -18,10 +18,13 @@ function init(app : App) {
         }
     });
 
-
     controller.on('bot_channel_join', function (bot, message) {
         //TODO: Create channel if not already existing
         bot.reply(message, "Lets get some tunes going!\nNeed some help getting some bangers going? Try /help")
+    });
+
+    controller.hears('hello', 'direct_message', function (bot, message) {
+        bot.reply(message, 'Hello!');
     });
 
     const slashCommands = {
@@ -34,30 +37,24 @@ function init(app : App) {
         "/djs": getDjList,
         "/playing": getPlaying,
         "/dj-help": comingSoon,
-        "/dj-suggestion":comingSoon,
-        "/listening":getChannelListeners
+        "/dj-suggestion": comingSoon,
+        "/listening": getChannelListeners
     };
 
     const buttonCommands = {
         "spotify_login": getSpotifyLoginLink,
-        "add_song_to_queue": addSongToQueue
+        "add_song_to_queue": addSongToQueue,
+        "add_reaction": addReaction
     };
 
     const outgoingMessages = {
         "nowPlaying": displayNowPlaying
     };
 
-    app.outgoingMessages.subscribe(async (data) => {
-        try {
-            let callback = outgoingMessages[data['type']];
-            callback(webhookBot, data);
-        }
-        catch (e) {
-            console.error('Unable to send outgoing message!');
-            console.error(e);
-        }
-    });
 
+    /*
+        SLASH COMMANDS
+     */
     controller.on('slash_command', async function (bot, message) {
         try {
             let userLoggedIn = await userService.userIsLoggedIn(createSlackObject(message), 'slack');
@@ -69,22 +66,6 @@ function init(app : App) {
             console.error(e);
         }
     });
-
-    controller.hears('hello', 'direct_message', function (bot, message) {
-        bot.reply(message, 'Hello!');
-    });
-
-
-    function displayNowPlaying(bot, data) {
-        bot.sendWebhook(
-            {
-                ...SlackMessages.NowPlayingMessage(SlackMessages.parseTrack(data.data), data.user),
-                channel: data.channel,
-            },
-            function (err, res) {
-            }
-        );
-    }
 
     async function sync(bot, message) {
         let user = userService.getSlackUser(createSlackObject(message));
@@ -116,13 +97,13 @@ function init(app : App) {
             bot.replyPrivate(message, "You are no longer listening to music in this channel");
         }
         else {
-            bot.replyPrivate(message, 'Whoops, something went wrong.');
+            bot.bot.replyPrivate(message, 'Whoops, something went wrong.');
         }
     }
 
     async function getChannelListeners(bot, message) {
         let channel = await app.getChannel(message);
-        let listeners = _.map(await channel.getChannelListeners(), (listener)=> {
+        let listeners = _.map(await channel.getChannelListeners(), (listener) => {
             return SlackMessages.linkUsername(listener['username']);
         });
         if (listeners.length > 0) {
@@ -190,20 +171,6 @@ function init(app : App) {
         }
     }
 
-    async function getSpotifyLoginLink(bot, message) {
-        let user = createSlackObject(message);
-        user = await app.loginUser(user);
-        let loginMsg = `Login to Spotify to enable DJ-Bot! ${process.env.SPOTIFY_LOGIN}?user_uuid=${user['user_uuid']}`;
-        bot.replyInteractive(message, loginMsg);
-    }
-
-    function addSongToQueue(bot, message) {
-        let user = createSlackObject(message);
-        let trackData = message['actions'][0];
-        app.addToUserPlaylist(user, trackData);
-        bot.replyInteractive(message, 'Song added!')
-    }
-
     async function addDj(bot, message) {
         let user = createSlackObject(message);
         let result = await app.addDj(user);
@@ -260,10 +227,61 @@ function init(app : App) {
         }
     }
 
+
+    /*
+        INTERACTIVE COMPONENTS
+     */
     controller.on('interactive_message_callback', function (bot, message) {
         let callback = buttonCommands[message['callback_id']];
         callback(bot, message);
     });
+
+    async function getSpotifyLoginLink(bot, message) {
+        let user = createSlackObject(message);
+        user = await app.loginUser(user);
+        let loginMsg = `Login to Spotify to enable DJ-Bot! ${process.env.SPOTIFY_LOGIN}?user_uuid=${user['user_uuid']}`;
+        bot.replyInteractive(message, loginMsg);
+    }
+
+    function addSongToQueue(bot, message) {
+        let user = createSlackObject(message);
+        let trackData = message['actions'][0];
+        app.addToUserPlaylist(user, trackData);
+        bot.replyInteractive(message, 'Song added!')
+    }
+
+    function addReaction(bot, message) {
+        console.log("adding reaction")
+    }
+
+    /*
+       OUTGOING MESSAGES
+    */
+    app.outgoingMessages.subscribe(async (data) => {
+        try {
+            let callback = outgoingMessages[data['type']];
+            callback(webhookBot, data);
+        }
+        catch (e) {
+            console.error('Unable to send outgoing message!');
+            console.error(e);
+        }
+    });
+
+    function displayNowPlaying(bot, data) {
+        bot.sendWebhook(
+            {
+                ...SlackMessages.NowPlayingMessage(SlackMessages.parseTrack(data.data), data.user),
+                channel: data.channel,
+            },
+            function (err, res) {
+            }
+        );
+    }
+
+    /*
+        HELPER FUNCTIONS
+     */
 
     function createSlackObject(message) {
         let user, channel, team;
