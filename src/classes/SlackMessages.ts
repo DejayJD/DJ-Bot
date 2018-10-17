@@ -13,7 +13,7 @@ export class SlackMessages {
                 "title": track.name,
                 "title_link": track.uri,
                 "thumb_url": track.artwork,
-                "callback_id": "add_song_reaction",
+                "callback_id": "add_reaction",
                 "actions": [
                     {
                         "name": "nope",
