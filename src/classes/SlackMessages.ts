@@ -5,7 +5,7 @@ export class SlackMessages {
 
     static NowPlayingMessage(track, user) {
         return {
-            "text": `Now Playing *${track.name}* requested by <@${user.context.user.name}>`,
+            "text": `Now Playing *${track.name}* queued by <@${user.context.user.name}>`,
             "attachments": [{
                 "fallback": "Now Playing " + track.name,
                 "color": this.spotifyColor,

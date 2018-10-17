@@ -13,10 +13,7 @@ export class ChannelPlayer {
     _id: number;
     channel_id: number;
     channel_name: string;
-    current_song: any = {  // Current song uri + start time
-        uri: 'spotify:track:2fTjkEmR1t7J4WICztg136',
-        start_time: new Date()
-    };  // Current song uri + start time
+    current_song: any = null;  // Current song uri + start time
     songHistory: any[] = []; // ["uri1", "uri2", "uri3"] -- List of previous songs
     currentDevices: any[] = [];
     // -- dj_queue will be in the order that djs will take turns in
@@ -206,10 +203,9 @@ export class ChannelPlayer {
         else {
             this.dj_queue.push(dj);
             this.channelService.updateDjQueue(this, this.dj_queue);
-            // TODO: fix this
-            // if (this.current_song == null) {
-            //     this.nextSong()
-            // }
+            if (this.current_song == null) {
+                this.nextSong()
+            }
             return 'added';
         }
     }
