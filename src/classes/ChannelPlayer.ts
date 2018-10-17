@@ -201,7 +201,7 @@ export class ChannelPlayer {
         }
         else {
             let nextSong = await this.getUsersNextSong(dj);
-            if (nextSong) { //User didnt have a song ready to dj so we kick them back
+            if (_.isNil(nextSong)) { //User didnt have a song ready to dj so we kick them back
                 return 'empty-playlist';
             }
             this.dj_queue.push(dj);
