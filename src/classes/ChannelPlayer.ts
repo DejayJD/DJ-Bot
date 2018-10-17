@@ -201,7 +201,8 @@ export class ChannelPlayer {
             return 'already-added';
         }
         else {
-            if ()
+            // if ()
+            console.log(JSON.stringify(dj));
             this.dj_queue.push(dj);
             this.channelService.updateDjQueue(this, this.dj_queue);
             if (this.current_song == null) {
