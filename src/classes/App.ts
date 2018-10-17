@@ -9,6 +9,7 @@ import {Service} from "../services/ServiceManager";
 import {SpotifyService} from "../services/SpotifyService";
 import {Observable} from "rxjs/index";
 import {ChannelService} from "../services/ChannelService";
+import {db} from "../models/DatabaseConnection";
 
 
 export class App {
@@ -61,7 +62,14 @@ export class App {
     }
 
     async getChannel(channelData) {
-        return await this.channelService.getChannel(channelData);
+        let dbChannel = await this.channelService.getChannel(channelData);
+        let playerChannel = _.find(this.channels, (channel)=>{
+            return channel.channel_id == dbChannel.channel_id
+        });
+        if (_.isNil(playerChannel)) {
+            this.channels.push(new ChannelPlayer(dbChannel));
+        }
+        return playerChannel;
     }
 
 

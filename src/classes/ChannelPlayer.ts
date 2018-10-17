@@ -10,6 +10,7 @@ import {UserService} from "../services/UserService";
 import {ChannelService} from "../services/ChannelService";
 
 export class ChannelPlayer {
+    _id: number;
     channel_id: number;
     channel_name: string;
     current_song: any = {  // Current song uri + start time
@@ -30,6 +31,7 @@ export class ChannelPlayer {
 
     constructor(channelData) {
         //Setup data
+        this._id = channelData['_id'];
         this.channel_name = channelData['channel_name'];
         this.channel_id = channelData['channel_id'];
         this.channel_listeners = channelData['channel_listeners'] || [];
