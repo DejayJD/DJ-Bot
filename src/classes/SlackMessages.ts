@@ -17,6 +17,10 @@ export class SlackMessages {
         }
     }
 
+    static linkUsername(username) {
+        return '<@'+ username + '>';
+    }
+
     static parseTrack(track) {
         return {
             uri: track.uri,

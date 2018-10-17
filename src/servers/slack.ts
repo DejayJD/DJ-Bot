@@ -162,7 +162,7 @@ function init(app : App) {
             }
             else {
                 let djNames = _.join(_.map(result, (dj) => {
-                    return dj.context.user.name;
+                    return SlackMessages.linkUsername(dj.username);
                 }), ' :arrow_right: ');
                 bot.replyPrivate(message, 'Current DJ order: :musical_note: ' + djNames);
             }
