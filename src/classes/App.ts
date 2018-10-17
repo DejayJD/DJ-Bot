@@ -66,8 +66,10 @@ export class App {
         let playerChannel = _.find(this.channels, (channel)=>{
             return channel.channel_id == dbChannel.channel_id
         });
+        // If the channel isnt found inside the app, thats because the server crashed or something and the channel is gone
         if (_.isNil(playerChannel)) {
-            this.channels.push(new ChannelPlayer(dbChannel));
+            playerChannel = new ChannelPlayer(dbChannel);
+            this.channels.push(playerChannel);
         }
         return playerChannel;
     }
