@@ -123,7 +123,7 @@ function init(app : App) {
     async function getChannelListeners(bot, message) {
         let channel = await app.getChannel(message);
         let listeners = _.map(await channel.getChannelListeners(), (listener)=> {
-            return SlackMessages.linkUsername(listener);
+            return SlackMessages.linkUsername(listener['username']);
         });
         if (listeners.length > 0) {
             bot.replyPrivate(message, "Listening right now: " + _.join(listeners, ', '));

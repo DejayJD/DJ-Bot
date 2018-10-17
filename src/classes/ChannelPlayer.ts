@@ -33,6 +33,7 @@ export class ChannelPlayer {
         this.channel_id = channelData['channel_id'];
         this.channel_listeners = channelData['channel_listeners'] || [];
         this.dj_queue = channelData['dj_queue'] || [];
+        //TODO: Reset the song switch timer if the song is still going on
 
         //Init services
         this.spotifyService = Service.getService(SpotifyService);
