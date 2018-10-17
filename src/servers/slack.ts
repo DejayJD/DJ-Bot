@@ -211,6 +211,9 @@ function init(app : App) {
             // await app.getUserChannel(user).syncUser(user);
             bot.reply(message, user.context.user.name + " has become a DJ");
         }
+        else if (result === 'empty-playlist') {
+            bot.replyPrivate(message, "You don't have any songs in your playlist. Type /song to add some songs first!");
+        }
         else if (result === 'already-added') {
             bot.replyPrivate(message, "You are already a DJ");
         }

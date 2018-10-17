@@ -120,7 +120,6 @@ export class ChannelPlayer {
         }
         catch (e) {
             console.error("Unable to find users playlist songs");
-
             // console.error(e);
         }
     }
@@ -193,7 +192,7 @@ export class ChannelPlayer {
         return this.dj_queue[0];
     }
 
-    addDj(dj) {
+    async addDj(dj) {
         let existingDj = _.find(this.dj_queue, (queueDj) => {
             return queueDj['user_uuid'] == dj['user_uuid']
         });
@@ -201,8 +200,10 @@ export class ChannelPlayer {
             return 'already-added';
         }
         else {
-            // if ()
-            console.log(JSON.stringify(dj));
+            let nextSong = await this.getUsersNextSong(dj);
+            if (nextSong) { //User didnt have a song ready to dj so we kick them back
+                return 'empty-playlist';
+            }
             this.dj_queue.push(dj);
             this.channelService.updateDjQueue(this, this.dj_queue);
             if (this.current_song == null) {
@@ -224,6 +225,7 @@ export class ChannelPlayer {
                 return queueDj['user_uuid'] == dj['user_uuid'];
             });
             if (this.dj_queue.length === 0) {
+                this.clearCurrentSong();
                 this.current_song = null;
             }
             this.channelService.updateDjQueue(this, this.dj_queue);
