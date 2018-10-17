@@ -63,7 +63,7 @@ function init(app: App) {
         }
         catch (e) {
             bot.replyPrivate(message, "Whoops, something went wrong with that command!");
-            console.error(e);
+            console.error('Unable to run slash command ' + message.command);
         }
     });
 
@@ -232,8 +232,14 @@ function init(app: App) {
         INTERACTIVE COMPONENTS
      */
     controller.on('interactive_message_callback', function (bot, message) {
-        let callback = buttonCommands[message['callback_id']];
-        callback(bot, message);
+        try {
+            let callback = buttonCommands[message['callback_id']];
+            callback(bot, message);
+        }
+        catch (e) {
+            console.error('Unable to call interactive message with callback_id =' + message['callback_id']);
+            bot.replyPrivate(message, "Oops something went wrong");
+        }
     });
 
     async function getSpotifyLoginLink(bot, message) {
@@ -263,7 +269,7 @@ function init(app: App) {
             callback(webhookBot, data);
         }
         catch (e) {
-            console.error('Unable to send outgoing message!');
+            console.error('Unable to send outgoing message of type' + data['type']);
             console.error(e);
         }
     });
