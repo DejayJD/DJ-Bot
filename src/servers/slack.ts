@@ -107,7 +107,7 @@ function init(app : App) {
 
     async function stopUserListening(bot, message) {
         let channel = await app.getChannel(message);
-        let user = await userService.getUser(this.createSlackObject(message), 'context');
+        let user = await userService.getUser(createSlackObject(message), 'context');
         let result = channel.removeListener(user);
         if (result === 'listener-doesnt-exist') {
             bot.replyPrivate(message, "You are not currently sync-ing up music to this channel.");
