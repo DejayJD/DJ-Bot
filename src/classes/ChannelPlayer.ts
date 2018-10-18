@@ -43,6 +43,7 @@ export class ChannelPlayer {
         this.outgoingMessages = Observable.create(e => this.outgoingMessageEmitter = e);
         this.outgoingMessages.subscribe(this.outgoingMessageEmitter);
 
+        //Resume the playback from before
         this.current_song = channelData['current_song'] || null;
         this.resumePlayback();
     }
