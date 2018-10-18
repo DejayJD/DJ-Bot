@@ -38,7 +38,7 @@ export class SlackMessages {
         let messageText = this.linkUsername(username) + ' - ' + this.reaction(reaction);
         if (!_.isNil(existingMessage)) {
             if (existingMessage.text.match(messageText)) { //User's reaction is already present
-                return;
+                return existingMessage;
             }
             existingMessage.text += ', ' + messageText;
             return existingMessage;
