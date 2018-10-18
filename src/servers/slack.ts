@@ -260,7 +260,8 @@ function init(app: App) {
         let reaction = message['actions'][0].value;
         let newMessage = message.original_message;
         let username = message.raw_message.user.name;
-        let reactionMessage = SlackMessages.ReactionMessage(username, reaction, message.attachments[1]);
+        let reactionMessage = SlackMessages.ReactionMessage(username, reaction, newMessage.attachments[1]);
+
         if (newMessage.attachments.length > 1) {
             newMessage.attachments[1] = reactionMessage;
         }

@@ -31,6 +31,7 @@ export class SlackMessages {
         let messageText = this.linkUsername(username) + ' - ' + this.reaction(reaction);
         if (!_.isNil(existingMessage)) {
             existingMessage.text += ', ' + messageText;
+            return existingMessage;
         }
         return {
             text: messageText,
