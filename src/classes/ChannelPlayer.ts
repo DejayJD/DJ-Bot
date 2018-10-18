@@ -33,9 +33,6 @@ export class ChannelPlayer {
         this.channel_id = channelData['channel_id'];
         this.channel_listeners = channelData['channel_listeners'] || [];
         this.dj_queue = channelData['dj_queue'] || [];
-        this.current_song = channelData['current_song'] || null;
-        //TODO: Reset the song switch timer if the song is still going on
-        this.resumePlayback()
 
         //Init services
         this.spotifyService = Service.getService(SpotifyService);
@@ -45,16 +42,19 @@ export class ChannelPlayer {
         //Init outgoing messages
         this.outgoingMessages = Observable.create(e => this.outgoingMessageEmitter = e);
         this.outgoingMessages.subscribe(this.outgoingMessageEmitter);
+
+        this.current_song = channelData['current_song'] || null;
+        this.resumePlayback();
     }
 
     resumePlayback() {
-        if (!_.isNil(this.current_song)) {
+        if (!_.isNil(this.current_song) && this.dj_queue.length > 0) {
             let playback_position_ms = this.getPlaybackOffset(this.current_song.start_time);
             if (playback_position_ms >= this.current_song.duration_ms) {
                 this.nextSong();
             }
             else {
-                this.scheduleSongTransition(this.current_song, this.current_song.duration_ms - playback_position_ms);
+                this.scheduleSongTransition(this.current_song, playback_position_ms);
             }
         }
     }
@@ -191,6 +191,8 @@ export class ChannelPlayer {
         let nextSong = await this.getUsersNextSong(nextDj);
         if (_.isNil(nextSong)) {
             console.error("unable to find users nextSong! user = " + JSON.stringify(nextDj));
+            this.current_song = null;
+            return;
         }
         //Cycle their song to the bottom of their playlist
         this.moveTopSongToBottom(nextDj);
