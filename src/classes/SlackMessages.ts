@@ -16,6 +16,13 @@ export class SlackMessages {
                 "callback_id": "add_reaction",
                 "actions": [
                     {
+                        "name": "boo",
+                        "text": "Boo",
+                        "style": "danger",
+                        "type": "button",
+                        "value": 'thumbsdown'
+                    },
+                    {
                         "name": "nice",
                         "text": "Nice Play!",
                         "style": "primary",
@@ -30,6 +37,9 @@ export class SlackMessages {
     static ReactionMessage(username, reaction, existingMessage = null) {
         let messageText = this.linkUsername(username) + ' - ' + this.reaction(reaction);
         if (!_.isNil(existingMessage)) {
+            if (existingMessage.text.match(messageText)) { //User's reaction is already present
+                return;
+            }
             existingMessage.text += ', ' + messageText;
             return existingMessage;
         }
