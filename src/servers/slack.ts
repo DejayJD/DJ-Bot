@@ -36,7 +36,7 @@ function init(app: App) {
         "/stop": stopUserListening,
         "/djs": getDjList,
         "/playing": getPlaying,
-        "/dj-help": comingSoon,
+        "/dj-help": getHelpMessage,
         "/dj-suggestion": comingSoon,
         "/listening": getChannelListeners
     };
@@ -72,7 +72,7 @@ function init(app: App) {
         let channel = await app.getChannel(message);
         let result = await channel.syncUser(user);
         if (result === 'no-song') {
-            bot.replyPrivate(message, "There are currently no songs playing. Type /dj to get some tunes going!");
+            bot.replyPrivate(message, "There are currently no songs playing. \nType /dj to get some tunes going!");
         }
         else if (result === 'syncing') {
             bot.replyPrivate(message, "Syncing you up...");
@@ -80,6 +80,10 @@ function init(app: App) {
         else {
             bot.replyPrivate(message, 'Whoops, something went wrong.');
         }
+    }
+
+    function getHelpMessage(bot, message) {
+        bot.replyPrivate(message, SlackMessages.HelpMessage());
     }
 
     function comingSoon(bot, message) {
@@ -118,7 +122,7 @@ function init(app: App) {
         let channel = await app.getChannel(message);
         let result = channel.getCurrentSong();
         if (result === 'no-song-playing') {
-            bot.replyPrivate(message, "There are currently no songs playing. Type /dj to get some tunes going!");
+            bot.replyPrivate(message, "There are currently no songs playing. \nType /dj to get some tunes going!");
         }
         else if (typeof result === 'object') {
             if (!_.isNil(result.track.track_data)) {
@@ -139,7 +143,7 @@ function init(app: App) {
         let result = await channel.getCurrentDjs();
         if (Array.isArray(result)) {
             if (result.length === 0) {
-                bot.replyPrivate(message, 'There are currently no users in the DJ Queue. Type /dj to become a DJ!');
+                bot.replyPrivate(message, 'There are currently no users in the DJ Queue. \nType /dj to become a DJ!');
             }
             else {
                 let djNames = _.join(_.map(result, (dj) => {
@@ -164,7 +168,7 @@ function init(app: App) {
         let user = userService.getSlackUser(createSlackObject(message));
         let response = await app.skipToNextSong(user);
         if (response === 'no-dj') {
-            bot.replyPrivate(message, 'There are currently no users in the DJ Queue. Type /dj to become a DJ!');
+            bot.replyPrivate(message, 'There are currently no users in the DJ Queue. \nType /dj to become a DJ!');
         }
         else {
             bot.reply(message, user.context.user.name + ' requested to skip to next song');
@@ -179,7 +183,7 @@ function init(app: App) {
             bot.reply(message, user.context.user.name + " has become a DJ");
         }
         else if (result === 'empty-playlist') {
-            bot.replyPrivate(message, "You don't have any songs in your playlist. Type /song to add some songs first!");
+            bot.replyPrivate(message, "You don't have any songs in your playlist. \nType /song to add some songs first!");
         }
         else if (result === 'already-added') {
             bot.replyPrivate(message, "You are already a DJ");
