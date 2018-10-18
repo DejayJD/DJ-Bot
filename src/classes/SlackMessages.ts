@@ -36,20 +36,19 @@ export class SlackMessages {
 
     static HelpMessage() {
         return {
-            "text":`Available Commands:
-                /sync           : Sync up your Spotify with DJ Bot
-                /stop           : Stop sync-ing your Spotify with DJ Bot
-                /song           : Search for a song to add your queue
-                /skip           : Skip to the next song in the queue
-                /dj             : Become a DJ and play some tunes!
-                /stepdown       : Stop being a DJ
-                /djs            : See a list of who are currently DJs
-                /listening      : See who is currently listening
-                /playing        : See what song is currently playing
-                /dj-bot-feedback: Let the developers know any feedback or ideas you have
-                /dj-help        : See this message 
-                
-            `
+            "text":`
+Available Commands:
+/sync           : Sync up your Spotify with DJ Bot
+/stop           : Stop sync-ing your Spotify with DJ Bot
+/song           : Search for a song to add your queue
+/skip           : Skip to the next song in the queue
+/dj             : Become a DJ and play some tunes!
+/stepdown       : Stop being a DJ
+/djs            : See a list of who are currently DJs
+/listening      : See who is currently listening
+/playing        : See what song is currently playing
+/dj-bot-feedback: Let the developers know any feedback or ideas you have
+/dj-help        : See this message`
         }
     }
 
