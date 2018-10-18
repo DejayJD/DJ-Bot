@@ -258,11 +258,17 @@ function init(app: App) {
 
     async function addReaction(bot, message) {
         let reaction = {
-            token: message.token,
-            timestamp: message.original_message.ts,
-            name: message.text
+            timestamp: message.message_ts,
+            channel: message.channel,
+            name: message.actions[0].value
         };
-        await bot.api.reactions.add(reaction);
+        try {
+            await bot.api.reactions.add(reaction);
+        }
+        catch (e) {
+            console.error({message:'Unable to add reaction', ...reaction});
+            console.error(e);
+        }
     }
 
     /*
