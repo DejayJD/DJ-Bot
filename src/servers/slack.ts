@@ -256,8 +256,13 @@ function init(app: App) {
         bot.replyInteractive(message, 'Song added!')
     }
 
-    function addReaction(bot, message) {
-        console.log("adding reaction")
+    async function addReaction(bot, message) {
+        let reaction = {
+            token: message.token,
+            timestamp: message.original_message.ts,
+            name: message.text
+        };
+        await bot.api.reactions.add(reaction);
     }
 
     /*
