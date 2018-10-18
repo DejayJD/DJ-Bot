@@ -16,13 +16,6 @@ export class SlackMessages {
                 "callback_id": "add_reaction",
                 "actions": [
                     {
-                        "name": "nope",
-                        "text": "Nope",
-                        "style": "danger",
-                        "type": "button",
-                        "value": 'thumbsdown'
-                    },
-                    {
                         "name": "nice",
                         "text": "Nice Play!",
                         "style": "primary",
@@ -34,8 +27,23 @@ export class SlackMessages {
         }
     }
 
+    static ReactionMessage(username, reaction, existingMessage = null) {
+        let messageText = this.linkUsername(username) + ' - ' + this.reaction(reaction);
+        if (!_.isNil(existingMessage)) {
+            existingMessage.text += ', ' + messageText;
+        }
+        return {
+            text: messageText,
+            color:this.spotifyColor
+        }
+    }
+
     static linkUsername(username) {
         return '<@'+ username + '>';
+    }
+
+    static reaction(reactionType) {
+        return ":" + reactionType + ":";
     }
 
     static parseTrack(track) {

@@ -257,16 +257,22 @@ function init(app: App) {
     }
 
     async function addReaction(bot, message) {
-        let reaction = {
-            timestamp: message.message_ts,
-            channel: message.channel,
-            name: message.actions[0].value
-        };
+        let reaction = message['actions'][0].value;
+        let newMessage = message.original_message;
+        let username = message.raw_message.user.name;
+        let reactionMessage = SlackMessages.ReactionMessage(username, reaction, message.attachments[1]);
+        if (newMessage.attachments.length > 1) {
+            newMessage.attachments[1] = reactionMessage;
+        }
+        else {
+            newMessage.attachments.push(reactionMessage);
+        }
         try {
-            await bot.api.reactions.add(reaction);
+            bot.replyInteractive(message, newMessage)
+            // await bot.api.reactions.add(reaction);
         }
         catch (e) {
-            console.error({message:'Unable to add reaction', ...reaction});
+            console.error({message:'Unable to add reaction line ', ...reaction});
             console.error(e);
         }
     }
