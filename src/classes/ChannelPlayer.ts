@@ -33,7 +33,9 @@ export class ChannelPlayer {
         this.channel_id = channelData['channel_id'];
         this.channel_listeners = channelData['channel_listeners'] || [];
         this.dj_queue = channelData['dj_queue'] || [];
+        this.current_song = channelData['current_song'] || null;
         //TODO: Reset the song switch timer if the song is still going on
+        this.resumePlayback()
 
         //Init services
         this.spotifyService = Service.getService(SpotifyService);
@@ -43,6 +45,23 @@ export class ChannelPlayer {
         //Init outgoing messages
         this.outgoingMessages = Observable.create(e => this.outgoingMessageEmitter = e);
         this.outgoingMessages.subscribe(this.outgoingMessageEmitter);
+    }
+
+    resumePlayback() {
+        if (!_.isNil(this.current_song)) {
+            let playback_position_ms = this.getPlaybackOffset(this.current_song.start_time);
+            if (playback_position_ms >= this.current_song.duration_ms) {
+                this.nextSong();
+            }
+            else {
+                this.scheduleSongTransition(this.current_song, this.current_song.duration_ms - playback_position_ms);
+            }
+        }
+    }
+
+    getPlaybackOffset(start_time : any) {
+        let currentTimestamp: any = new Date(); // Had to cast it to any to make typescript stop complaining.
+        return  Math.abs(currentTimestamp - start_time);
     }
 
     addListener(user) {
@@ -64,9 +83,9 @@ export class ChannelPlayer {
         if (!this.channel_listeners.includes(user['user_uuid'])) {
             this.addListener(user);
         }
-        let currentTimestamp: any = new Date(); // Had to cast it to any to make typescript stop complaining.
+
         let start_time: any = this.current_song.start_time; // Had to cast it to any to make typescript stop complaining.
-        let playbackDifference = Math.abs(currentTimestamp - start_time);
+        let playbackDifference =this.getPlaybackOffset(start_time);
         let playData = {uris: [this.current_song.uri], 'position_ms': playbackDifference};
         try {
             if (_.isNil(user['access_token'])) {
@@ -86,10 +105,10 @@ export class ChannelPlayer {
         }
     }
 
-    scheduleSongTransition(current_song) {
+    scheduleSongTransition(current_song, offset = 0) {
         let timer = new Timeout();
         this.current_song.timer = timer;
-        timer.set(current_song['duration_ms']).then(() => {
+        timer.set(current_song['duration_ms'] - offset).then(() => {
             this.nextSong();
         });
     }
