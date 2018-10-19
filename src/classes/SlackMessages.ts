@@ -49,7 +49,7 @@ Available Commands:
 /playing: See what song is currently playing
 /dj-bot-feedback: Let the developers know any feedback or ideas you have
 /dj-help: See this message
-/logout: Unlinks your Spotify from DJ-Bot`
+/logout: Disconnect your Spotify from DJ-Bot`
         }
     }
 

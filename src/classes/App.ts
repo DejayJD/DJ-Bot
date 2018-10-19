@@ -126,6 +126,7 @@ export class App {
     async removeUser(user, message) {
         await this.removeDj(user);
         await this.removeListener(user, message);
+        user = await this.userService.getUser(user, 'context');
         await this.userService.updateUser(user, {
            playlist_id: null,
            access_token:null,
