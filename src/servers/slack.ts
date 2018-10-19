@@ -54,6 +54,10 @@ function init(app: App) {
 
 
     /*
+        RTM Sockets - (User presence)
+     */
+
+    /*
         SLASH COMMANDS
      */
     controller.on('slash_command', async function (bot, message) {

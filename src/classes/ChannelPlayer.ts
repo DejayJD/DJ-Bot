@@ -171,6 +171,7 @@ export class ChannelPlayer {
             if (!_.isNil(this.current_song.timer)) {
                 this.current_song.timer.clear();
             }
+            this.current_song = null;
         }
     }
 
@@ -228,6 +229,9 @@ export class ChannelPlayer {
                 return 'empty-playlist';
             }
             this.dj_queue.push(dj);
+            if (this.channel_listeners.indexOf(dj) === -1) {
+                this.channel_listeners.push(dj['user_uuid']);
+            }
             this.channelService.updateDjQueue(this, this.dj_queue);
             if (this.current_song == null) {
                 this.nextSong()

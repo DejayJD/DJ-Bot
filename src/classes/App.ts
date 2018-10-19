@@ -49,7 +49,7 @@ export class App {
         });
     }
 
-    getUserChannel(user) {
+    getUserChannel(user) : ChannelPlayer {
         let channel = _.find(this.channels, {channel_id: user['channel']['id']});
         if (_.isNil(channel)) {
             if (!_.isNil(user['channel'])) {
