@@ -123,6 +123,22 @@ export class App {
         return await channel.addDj(user);
     }
 
+    async removeUser(user, message) {
+        await this.removeDj(user);
+        await this.removeListener(user, message);
+        await this.userService.updateUser(user, {
+           playlist_id: null,
+           access_token:null,
+           refresh_token:null
+        });
+    }
+
+    async removeListener(user, message) {
+        let channel = await this.getChannel(message);
+        user = await this.userService.getUser(user, 'context');
+        return channel.removeListener(user);;
+    }
+
     async removeDj(user) {
         let channel = this.getUserChannel(user);
         user = await this.userService.getUser(user, 'context');

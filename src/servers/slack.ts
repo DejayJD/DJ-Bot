@@ -38,7 +38,8 @@ function init(app: App) {
         "/playing": getPlaying,
         "/dj-help": getHelpMessage,
         "/dj-suggestion": comingSoon,
-        "/listening": getChannelListeners
+        "/listening": getChannelListeners,
+        "/logout": removeUser
     };
 
     const buttonCommands = {
@@ -86,14 +87,17 @@ function init(app: App) {
         bot.replyPrivate(message, SlackMessages.HelpMessage());
     }
 
+    async function removeUser(bot, message) {
+        let response = await app.removeUser(createSlackObject(message), message);
+        bot.replyPrivate(message, "You have been logged out. Re-login to use DJ-Bot again");
+    }
+
     function comingSoon(bot, message) {
         bot.replyPrivate(message, "That command is still in development and coming soon...");
     }
 
     async function stopUserListening(bot, message) {
-        let channel = await app.getChannel(message);
-        let user = await userService.getUser(createSlackObject(message), 'context');
-        let result = channel.removeListener(user);
+        let result = await app.removeListener(createSlackObject(message), message);
         if (result === 'listener-doesnt-exist') {
             bot.replyPrivate(message, "You are not currently listening to music in this channel.");
         }
@@ -277,7 +281,7 @@ function init(app: App) {
             // await bot.api.reactions.add(reaction);
         }
         catch (e) {
-            console.error({message:'Unable to add reaction line ', ...reaction});
+            console.error({message: 'Unable to add reaction line ', ...reaction});
             console.error(e);
         }
     }
