@@ -63,9 +63,12 @@ export class App {
 
     async getChannel(channelData) : Promise<ChannelPlayer> {
         let dbChannel = await this.channelService.getChannel(channelData);
-        let playerChannel = _.find(this.channels, (channel)=>{
-            return channel.channel_id == dbChannel.channel_id
-        });
+        let playerChannel;
+        if (!_.isNil(dbChannel)) {
+            playerChannel = _.find(this.channels, (channel)=>{
+                return channel.channel_id == dbChannel.channel_id
+            });
+        }
         // If the channel isnt found inside the app, thats because the server crashed or something and the channel is gone
         if (_.isNil(playerChannel)) {
             playerChannel = new ChannelPlayer(dbChannel);
@@ -118,10 +121,19 @@ export class App {
     }
 
     async addDj(user) {
+        //The channel that the command came from
+        let channel = await this.getOrCreateChannel({channel_id:user.channel.id});
         user = await this.userService.getUser(user, 'context');
-        let currentChannel = this.getUserChannel(user);
-        let channel = await this.getChannel({channel_id:user.channel.id});
+        //The channel that the user is currently active in
+        let currentUserChannel = this.getUserChannel(user);
+        if (currentUserChannel.channel_id !== channel.channel_id) {
+            return 'switch-channels';
+        }
         return await channel.addDj(user);
+    }
+
+    async switchUserChannel(user, channel) {
+
     }
 
     async syncUser(user, message) {
