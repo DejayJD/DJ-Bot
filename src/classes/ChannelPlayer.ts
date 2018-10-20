@@ -45,6 +45,9 @@ export class ChannelPlayer {
 
         //Resume the playback from before
         this.current_song = channelData['current_song'] || null;
+        if (_.isEqual(this.current_song, {}) || _.isEqual(this.current_song, [])) {
+            this.current_song = null;
+        }
         this.resumePlayback();
     }
 
@@ -186,6 +189,7 @@ export class ChannelPlayer {
     }
 
     async nextSong() {
+
         //Move to the next DJ - this will update the DJ order and get the next person
         let nextDj = await this.goToNextDj();
         // nextDj = await this.userService.getUser({user_uuid:nextDj});
@@ -233,7 +237,7 @@ export class ChannelPlayer {
                 this.channel_listeners.push(dj['user_uuid']);
             }
             this.channelService.updateDjQueue(this, this.dj_queue);
-            if (this.current_song == null) {
+            if (_.isNil(this.current_song) || this.current_song === 'null') {
                 this.nextSong()
             }
             return 'added';
