@@ -188,7 +188,6 @@ function init(app: App) {
         let user = createSlackObject(message);
         let result = await app.addDj(user);
         if (result === 'added') {
-            // await app.getUserChannel(user).syncUser(user);
             bot.reply(message, user.context.user.name + " has become a DJ");
         }
         else if (result === 'empty-playlist') {

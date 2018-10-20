@@ -119,7 +119,8 @@ export class App {
 
     async addDj(user) {
         user = await this.userService.getUser(user, 'context');
-        let channel = this.getUserChannel(user);
+        let currentChannel = this.getUserChannel(user);
+        let channel = await this.getChannel(user.context.channel);
         return await channel.addDj(user);
     }
 
