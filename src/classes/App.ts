@@ -123,6 +123,11 @@ export class App {
         return await channel.addDj(user);
     }
 
+    async syncUser(user, message) {
+        let channel = await this.getChannel(message);
+        return await channel.syncUser(user);
+    }
+
     async removeUser(user, message) {
         await this.removeDj(user);
         await this.removeListener(user, message);

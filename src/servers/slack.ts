@@ -73,9 +73,10 @@ function init(app: App) {
     });
 
     async function sync(bot, message) {
+
         let user = userService.getSlackUser(createSlackObject(message));
-        let channel = await app.getChannel(message);
-        let result = await channel.syncUser(user);
+        let result = await app.syncUser(user, message);
+
         if (result === 'no-song') {
             bot.replyPrivate(message, "There are currently no songs playing. \nType /dj to get some tunes going!");
         }
