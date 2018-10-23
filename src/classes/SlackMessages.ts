@@ -36,7 +36,7 @@ export class SlackMessages {
 
     static HelpMessage() {
         return {
-            "text":`
+            "text": `
 Available Commands:
 /sync: Sync up your Spotify with DJ Bot
 /stop: Stop sync-ing your Spotify with DJ Bot
@@ -64,12 +64,12 @@ Available Commands:
         }
         return {
             text: messageText,
-            color:this.spotifyColor
+            color: this.spotifyColor
         }
     }
 
     static linkUsername(username) {
-        return '<@'+ username + '>';
+        return '<@' + username + '>';
     }
 
     static reaction(reactionType) {
@@ -126,6 +126,45 @@ Available Commands:
                     ]
                 }
             ]
+        }
+    }
+
+
+    static errorMessage = 'Whoops, something went wrong with that command!';
+
+    static getBotReplyMessage(messageType, args) {
+        const botResponse = {
+            "added-dj": {
+                message: `${this.linkUsername(args[0])} has become a DJ`,
+                type: "public"
+            },
+            "empty-playlist": {
+                message: "You don't have any songs in your playlist. Type /song to add some songs first!",
+                type: "private"
+            },
+            "already-dj": {
+                message: "You are already a DJ",
+                type: "private"
+            },
+            "switch-channels": {
+                message: "Warning! You are currently active in another channel, are you sure you want to switch channels?",
+                type: "private"
+            }
+        };
+        let response = botResponse[messageType];
+        if (_.isNil(response)) {
+            response = this.errorMessage;
+        }
+        return response;
+    }
+
+    static botReply(bot, message, messageType, ...args) {
+        let botResponse = this.getBotReplyMessage(messageType, args);
+        if (botResponse.type === 'public') {
+            bot.reply(message, botResponse.message);
+        }
+        else if (botResponse.type === 'private') {
+            bot.replyPrivate(message, botResponse.message);
         }
     }
 }

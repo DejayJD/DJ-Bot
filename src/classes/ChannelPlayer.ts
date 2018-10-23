@@ -225,7 +225,7 @@ export class ChannelPlayer {
             return queueDj['user_uuid'] == dj['user_uuid']
         });
         if (!_.isNil(existingDj)) {
-            return 'already-added';
+            return 'already-dj';
         }
         else {
             let nextSong = await this.getUsersNextSong(dj);
@@ -240,7 +240,7 @@ export class ChannelPlayer {
             if (_.isNil(this.current_song) || this.current_song === 'null') {
                 this.nextSong()
             }
-            return 'added';
+            return 'added-dj';
         }
     }
 

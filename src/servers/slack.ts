@@ -20,27 +20,27 @@ function init(app: App) {
 
     controller.on('bot_channel_join', function (bot, message) {
         //TODO: Create channel if not already existing
-        bot.reply(message, "Lets get some tunes going!Need some help getting some bangers going? Try /help")
+        bot.reply(message, "Lets get some tunes going! Need some help getting some bangers going? Try /help")
     });
 
     controller.hears('hello', 'direct_message', function (bot, message) {
         bot.reply(message, 'Hello!');
     });
 
-    const slashCommands = {
-        "/sync": sync,
-        "/song": searchSongs,
-        "/skip": skipToNext,
-        "/dj": addDj,
-        "/stepdown": stepDownDj,
-        "/stop": stopUserListening,
-        "/djs": getDjList,
-        "/playing": getPlaying,
-        "/dj-help": getHelpMessage,
-        "/dj-suggestion": comingSoon,
-        "/listening": getChannelListeners,
-        "/logout": removeUser
-    };
+    const slashCommands = [
+        {command: "/sync", callback: sync, channelSwitch: true, loginRequired: true},
+        {command: "/song", callback: searchSongs, channelSwitch: true, loginRequired: true},
+        {command: "/skip", callback: skipToNext, channelSwitch: true, loginRequired: true},
+        {command: "/dj", callback: addDj, channelSwitch: true, loginRequired: true},
+        {command: "/stepdown", callback: stepDownDj, loginRequired: true},
+        {command: "/stop", callback: stopUserListening, loginRequired: true},
+        {command: "/djs", callback: getDjList},
+        {command: "/playing", callback: getPlaying},
+        {command: "/dj-help", callback: getHelpMessage},
+        {command: "/dj-suggestion", callback: comingSoon},
+        {command: "/listening", callback: getChannelListeners},
+        {command: "/logout", callback: removeUser, loginRequired: true}
+    ];
 
     const buttonCommands = {
         "spotify_login": getSpotifyLoginLink,
@@ -63,7 +63,11 @@ function init(app: App) {
     controller.on('slash_command', async function (bot, message) {
         try {
             let userLoggedIn = await userService.userIsLoggedIn(createSlackObject(message), 'slack');
-            let callback = userLoggedIn ? slashCommands[message.command] : requestLogin;
+            let slashCommand = _.find(slashCommands, (slash) => {
+                return slash.command == message.command;
+            });
+            let callback;
+            callback = !userLoggedIn && slashCommand.loginRequired ? requestLogin : slashCommand.callback;
             callback(bot, message);
         }
         catch (e) {
@@ -187,18 +191,7 @@ function init(app: App) {
     async function addDj(bot, message) {
         let user = createSlackObject(message);
         let result = await app.addDj(user);
-        if (result === 'added') {
-            bot.reply(message, user.context.user.name + " has become a DJ");
-        }
-        else if (result === 'empty-playlist') {
-            bot.replyPrivate(message, "You don't have any songs in your playlist. Type /song to add some songs first!");
-        }
-        else if (result === 'already-added') {
-            bot.replyPrivate(message, "You are already a DJ");
-        }
-        else {
-            bot.replyPrivate(message, 'Whoops, something went wrong with adding you as a dj');
-        }
+        SlackMessages.botReply(bot, message, result, user.context.user.name);
     }
 
     async function stepDownDj(bot, message) {
