@@ -69,7 +69,8 @@ export class App {
                 return channel.channel_id == dbChannel.channel_id
             });
         }
-        // If the channel isnt found inside the app, thats because the server crashed or something and the channel is gone
+        // If the channel isnt found inside the app, thats because the server crashed or something and the channel is gone,
+        // Recreate it here
         if (_.isNil(playerChannel)) {
             playerChannel = new ChannelPlayer(dbChannel);
             this.channels.push(playerChannel);
@@ -112,7 +113,9 @@ export class App {
             return newChannel;
         }
         else {
-            return new ChannelPlayer(existingChannel);
+            let newChannel = new ChannelPlayer(existingChannel);
+            this.channels.push(newChannel);
+            return newChannel;
         }
     }
 
