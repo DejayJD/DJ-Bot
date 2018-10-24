@@ -50,13 +50,11 @@ export class App {
     }
 
     async getUserChannel(user) : Promise<ChannelPlayer> {
-        let channel = this.channelService.getUserCurrentActiveChannel(user);
+        let channel = _.find(this.channels, {channel_id: user['channel']['id']});
         if (_.isNil(channel)) {
             if (!_.isNil(user['channel'])) {
                 channel = this.getOrCreateChannel(user.channel, [user]);
-                return channel;
             }
-            return;
         }
         return channel;
     }
@@ -78,6 +76,28 @@ export class App {
         return playerChannel;
     }
 
+    async getOrCreateChannel(channel, initialUsers = []) : Promise<ChannelPlayer> {
+        channel['channel_id'] = channel['id'];
+        let existingChannel = await this.channelService.getChannel(channel);
+        if (_.isNil(existingChannel)) {
+            let newChannel = new ChannelPlayer({
+                    channel_id: channel['id'],
+                    channel_name: channel['name'],
+                    channel_listeners: _.map(initialUsers, 'user_uuid')
+                }
+            );
+            this.channels.push(newChannel);
+            this.subscribeToChannelMessages(newChannel);
+            this.channelService.createChannel(newChannel); // write to db
+            return newChannel;
+        }
+        else {
+            let newChannel = new ChannelPlayer(existingChannel);
+            this.channels.push(newChannel);
+            return newChannel;
+        }
+    }
+
 
 
     async skipToNextSong(user) {
@@ -95,29 +115,6 @@ export class App {
         channel.outgoingMessages.subscribe((data) => {
             this.outgoingMessageEmitter.next(data);
         });
-    }
-
-    async getOrCreateChannel(channel, initialUsers = []) : Promise<ChannelPlayer> {
-        channel['channel_id'] = channel['id'];
-        let existingChannel = await this.channelService.getChannel(channel);
-        if (_.isNil(existingChannel)) {
-            let channel_listeners = _.map(initialUsers, 'user_uuid');
-            let newChannel = new ChannelPlayer({
-                    channel_id: channel['id'],
-                    channel_name: channel['name'],
-                    channel_listeners: channel_listeners
-                }
-            );
-            this.channels.push(newChannel);
-            this.subscribeToChannelMessages(newChannel);
-            this.channelService.createChannel(newChannel); // write to db
-            return newChannel;
-        }
-        else {
-            let newChannel = new ChannelPlayer(existingChannel);
-            this.channels.push(newChannel);
-            return newChannel;
-        }
     }
 
     createUser(userData) {
