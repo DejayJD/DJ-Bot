@@ -5,16 +5,28 @@ export class ChannelService {
         return await Channel.find();
     }
 
-    async getChannel(channel, query = 'channel_id') {
+    async getChannel(channelData, query = 'channel_id') {
         let queryObj = {};
-        queryObj[query] = channel[query];
+        queryObj[query] = channelData[query];
         let channels = await Channel.find(queryObj);
         return channels[0];
     }
 
     async queryChannels(query) {
-        let channels = await Channel.find(query);
-        return channels;
+        return await Channel.find(query);
+    }
+
+    //Returns something like the following:
+    //{ "listeners": {$elemMatch: {"user_uuid" : "cc072f60-d172-11e8-beb8-793e61f6e39a"}}}
+    getChannelDataIncludes(userData, type, queryBy = 'user_uuid') {
+        return {[type]: {$elemMatch: {[queryBy]: userData[queryBy]}}};
+    }
+
+    async getUserCurrentActiveChannel(userData, queryBy = 'user_uuid') {
+        //Queries to find a channel where the user exists in the listeners or exists in the dj_queue
+        let queryObj = {$or: [this.getChannelDataIncludes(userData, 'listeners', queryBy),
+                              this.getChannelDataIncludes(userData, 'dj_queue', queryBy)]};
+        return await this.queryChannels(queryObj);
     }
 
     async createChannel(channel) {

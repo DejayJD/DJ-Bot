@@ -18,6 +18,10 @@ export class UserService {
         this.users = await User.find();
     }
 
+    async getUserByContext(user) {
+        return this.getUser(user, 'context');
+    }
+
     getUserNameByContext(user) {
         if (user.context.type == 'slack') {
             return user.context.user.name;
