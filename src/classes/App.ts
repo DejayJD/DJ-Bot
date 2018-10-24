@@ -126,7 +126,7 @@ export class App {
         user = await this.userService.getUser(user, 'context');
         //The channel that the user is currently active in
         let currentUserChannel = this.getUserChannel(user);
-        if (currentUserChannel.channel_id !== channel.channel_id) {
+        if (currentUserChannel.channel_id !== channel.channel_id && !_.isNil(channel) && !_.isNil(currentUserChannel)) {
             return 'switch-channels';
         }
         return await channel.addDj(user);
