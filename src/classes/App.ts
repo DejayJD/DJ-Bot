@@ -9,8 +9,6 @@ import {Service} from "../services/ServiceManager";
 import {SpotifyService} from "../services/SpotifyService";
 import {Observable} from "rxjs/index";
 import {ChannelService} from "../services/ChannelService";
-import {db} from "../models/DatabaseConnection";
-
 
 export class App {
     channelLimit: number = 100;
@@ -37,10 +35,13 @@ export class App {
     async getChannels() {
         let dbChannels = await this.channelService.getChannels();
         this.channels = _.map(dbChannels, (channel) => {
-            let newChannel = new ChannelPlayer(channel);
-            this.subscribeToChannelMessages(newChannel);
-            return newChannel;
+            if (!_.isNil(channel['channel_id'] && !_.isNil(channel['channel_name']))) {
+                let newChannel = new ChannelPlayer(channel);
+                this.subscribeToChannelMessages(newChannel);
+                return newChannel;
+            }
         });
+        this.channels = _.compact(this.channels);
     }
 
     async channelExists(channel_id) {
@@ -49,40 +50,51 @@ export class App {
         });
     }
 
-    async getUserChannel(user) : Promise<ChannelPlayer> {
-        let channel = _.find(this.channels, {channel_id: user['channel']['id']});
-        if (_.isNil(channel)) {
-            if (!_.isNil(user['channel'])) {
-                channel = this.getOrCreateChannel(user.channel, [user]);
-            }
-        }
-        return channel;
+    async getUserChannel(user): Promise<ChannelPlayer> {
+        return _.find(this.channels, (channel) => {
+            return channel.channel_listeners.includes(user['user_uuid'])
+                || !_.isNil(_.find(channel.dj_queue, (dj)=> {
+                    return dj.user_uuid == user.user_uuid;
+                }));
+        });
     }
 
-    async getChannel(channelData) : Promise<ChannelPlayer> {
+    async getChannel(channelData): Promise<ChannelPlayer> {
         let dbChannel = await this.channelService.getChannel(channelData);
+
         let playerChannel;
         if (!_.isNil(dbChannel)) {
-            playerChannel = _.find(this.channels, (channel)=>{
+            playerChannel = _.find(this.channels, (channel) => {
                 return channel.channel_id == dbChannel.channel_id
             });
         }
         // If the channel isnt found inside the app, thats because the server crashed or something and the channel is gone,
         // Recreate it here
         if (_.isNil(playerChannel)) {
-            playerChannel = new ChannelPlayer(dbChannel);
-            this.channels.push(playerChannel);
+            if (_.isNil(dbChannel)) { //Couldnt find it in the DB either, so just make a new one
+                return await this.getOrCreateChannel(channelData);
+            }
+            else {
+                playerChannel = new ChannelPlayer(dbChannel);
+                this.channels.push(playerChannel);
+            }
         }
         return playerChannel;
     }
 
-    async getOrCreateChannel(channel, initialUsers = []) : Promise<ChannelPlayer> {
-        channel['channel_id'] = channel['id'];
+    //TODO: Refactor and merge these functions
+    async getOrCreateChannel(channel, initialUsers = []): Promise<ChannelPlayer> {
+        if (_.isNil(channel['channel_id'])) {
+            channel['channel_id'] = channel['id'];
+        }
+        if (_.isNil(channel['channel_name'])) {
+            channel['channel_name'] = channel['name'];
+        }
         let existingChannel = await this.channelService.getChannel(channel);
         if (_.isNil(existingChannel)) {
             let newChannel = new ChannelPlayer({
-                    channel_id: channel['id'],
-                    channel_name: channel['name'],
+                    channel_id: channel['channel_id'],
+                    channel_name: channel['channel_name'],
                     channel_listeners: _.map(initialUsers, 'user_uuid')
                 }
             );
@@ -99,10 +111,12 @@ export class App {
     }
 
 
-
     async skipToNextSong(user) {
-        user = this.userService.getUserByContext(user);
-        let channel = await this.getOrCreateChannel(user);
+        //TODO: Only allow skips when its current user or vote-skip
+        let channel = await this.getChannel({
+            channel_id: user.channel.id,
+            channel_name: user.channel.name
+        });
         if (channel.dj_queue.length === 0) {
             return "no-dj";
         }
@@ -123,20 +137,34 @@ export class App {
 
     async addDj(user) {
         //The channel that the command came from
-        let channel = await this.getOrCreateChannel({channel_id:user.channel.id});
+        let channel = await this.getChannel({
+            channel_id: user.channel.id,
+            channel_name: user.channel.name
+        });
         user = await this.userService.getUserByContext(user);
-        //The channel that the user is currently active in
-        let currentUserChannel = await this.getUserChannel(user);
-        if (!_.isNil(channel) && !_.isNil(currentUserChannel)) {
-            if (currentUserChannel.channel_id !== channel.channel_id && !_.isNil(currentUserChannel.channel_id) && !_.isNil(channel.channel_id)){
-                return 'switch-channels';
-            }
-        }
         return await channel.addDj(user);
     }
 
-    async switchUserChannel(user, channel) {
+    async getUserChannelConflict(user) {
+        let channel = await this.getChannel({
+            channel_id: user.channel.id,
+            channel_name: user.channel.name
+        });
+        user = await this.userService.getUserByContext(user);
+        let currentUserChannel = await this.getUserChannel(user);
+        if (!_.isNil(channel) && !_.isNil(currentUserChannel)) {
+            return currentUserChannel.channel_id !== channel.channel_id
+                    && !_.isNil(currentUserChannel.channel_id)
+                    && !_.isNil(channel.channel_id);
+        }
+        return false;
+    }
 
+    async switchUserChannel(user, channelData) {
+        user = await this.userService.getUserByContext(user);
+        let previousChannel = await this.getUserChannel(user);
+        previousChannel.removeListener(user);
+        return await previousChannel.removeDj(user);
     }
 
     async syncUser(user, message) {
@@ -149,9 +177,9 @@ export class App {
         await this.removeListener(user, message);
         user = await this.userService.getUserByContext(user);
         await this.userService.updateUser(user, {
-           playlist_id: null,
-           access_token:null,
-           refresh_token:null
+            playlist_id: null,
+            access_token: null,
+            refresh_token: null
         });
     }
 
@@ -162,7 +190,7 @@ export class App {
     }
 
     async removeDj(user) {
-        user = this.userService.getUserByContext(user);
+        user = await this.userService.getUserByContext(user);
         let channel = await this.getUserChannel(user);
         return channel.removeDj(user);
     }

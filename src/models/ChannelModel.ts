@@ -16,4 +16,5 @@ export const ChannelModel = {
     },
     dj_queue: Schema.Types.Mixed,
     channel_listeners: Schema.Types.Mixed,
+    incoming_webhook: String
 };

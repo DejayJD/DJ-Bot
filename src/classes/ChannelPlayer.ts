@@ -28,6 +28,9 @@ export class ChannelPlayer {
 
     constructor(channelData) {
         //Setup data
+        if (_.isNil(channelData['channel_id']) || _.isNil(channelData['channel_name'])) {
+            throw "Error trying to create channel. Null id or name!!"
+        }
         this._id = channelData['_id'];
         this.channel_name = channelData['channel_name'];
         this.channel_id = channelData['channel_id'];

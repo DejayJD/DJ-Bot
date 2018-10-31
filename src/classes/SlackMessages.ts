@@ -132,10 +132,10 @@ Available Commands:
 
     static errorMessage = 'Whoops, something went wrong with that command!';
 
-    static getBotReplyMessage(messageType, args) {
+    static getBotReplyMessage(messageType, data) {
         const botResponse = {
             "added-dj": {
-                message: `${this.linkUsername(args[0])} has become a DJ`,
+                message: `${this.linkUsername(data.username)} has become a DJ`,
                 type: "public"
             },
             "empty-playlist": {
@@ -147,7 +147,25 @@ Available Commands:
                 type: "private"
             },
             "switch-channels": {
-                message: "Warning! You are currently active in another channel, are you sure you want to switch channels?",
+                message: {
+                    text:"Warning! You are currently active in another channel, are you sure you want to switch channels?",
+                    "attachments": [
+                        {
+                            "fallback": "Are you sure you want to switch channels?",
+                            "callback_id": "switch_channels",
+                            "color": this.spotifyColor,
+                            "attachment_type": "default",
+                            "actions": [
+                                {
+                                    "name": "switch_channels",
+                                    "text": "Yes, switch channels",
+                                    "type": "button",
+                                    "value": data.action
+                                }
+                            ]
+                        }
+                    ]
+                },
                 type: "private"
             }
         };
@@ -158,10 +176,19 @@ Available Commands:
         return response;
     }
 
-    static botReply(bot, message, messageType, ...args) {
-        let botResponse = this.getBotReplyMessage(messageType, args);
+    static botReply(bot, message, messageType, data :any  = {}) {
+        let botResponse = this.getBotReplyMessage(messageType, data);
         if (botResponse.type === 'public') {
-            bot.reply(message, botResponse.message);
+            bot.api.chat.postMessage(
+                {
+                    ...botResponse.message,
+                    channel: '#' + message.channel_name,
+                    as_user:true
+                },
+                function (err, res) {
+                    // console.log(err);
+                }
+            );
         }
         else if (botResponse.type === 'private') {
             bot.replyPrivate(message, botResponse.message);

@@ -6,21 +6,23 @@ import {UserService} from "../services/UserService";
 import {Service} from "../services/ServiceManager";
 import {SlackMessages} from "../classes/SlackMessages";
 import {App} from "../classes/App";
+import {ChannelService} from "../services/ChannelService";
 
 
 function init(app: App) {
     //I abstracted all the setup code out of this file, so that I can leave all the business logic here
     const controller = require('../../lib/bot_setup.js');
-    const userService = Service.getService(UserService);
+    const userService : UserService = Service.getService(UserService);
+    const channelService : ChannelService = Service.getService(ChannelService);
     const webhookBot = controller.spawn({
         incoming_webhook: {
             url: process.env.SLACK_WEBHOOK
         }
     });
-
+    
     controller.on('bot_channel_join', function (bot, message) {
         //TODO: Create channel if not already existing
-        bot.reply(message, "Lets get some tunes going! Need some help getting some bangers going? Try /help")
+        bot.reply(message, "Lets get some tunes going! Need some help using DJ-BOt? Try /dj-help")
     });
 
     controller.hears('hello', 'direct_message', function (bot, message) {
@@ -28,10 +30,10 @@ function init(app: App) {
     });
 
     const slashCommands = [
-        {command: "/sync", callback: sync, channelSwitch: true, loginRequired: true},
-        {command: "/song", callback: searchSongs, channelSwitch: true, loginRequired: true},
-        {command: "/skip", callback: skipToNext, channelSwitch: true, loginRequired: true},
-        {command: "/dj", callback: addDj, channelSwitch: true, loginRequired: true},
+        {command: "/sync", callback: sync, channelConflict: true, loginRequired: true},
+        {command: "/song", callback: searchSongs, channelConflict: true, loginRequired: true},
+        {command: "/skip", callback: skipToNext, channelConflict: true, loginRequired: true},
+        {command: "/dj", callback: addDj, channelConflict: true, loginRequired: true},
         {command: "/stepdown", callback: stepDownDj, loginRequired: true},
         {command: "/stop", callback: stopUserListening, loginRequired: true},
         {command: "/djs", callback: getDjList},
@@ -45,7 +47,8 @@ function init(app: App) {
     const buttonCommands = {
         "spotify_login": getSpotifyLoginLink,
         "add_song_to_queue": addSongToQueue,
-        "add_reaction": addReaction
+        "add_reaction": addReaction,
+        "switch_channels": switchChannels
     };
 
     const outgoingMessages = {
@@ -62,12 +65,25 @@ function init(app: App) {
      */
     controller.on('slash_command', async function (bot, message) {
         try {
-            let userLoggedIn = await userService.userIsLoggedIn(createSlackObject(message), 'slack');
+            if (_.isNil(webhookBot.config.token)) {
+                webhookBot.config.token = bot.config.token;
+            }
+            let user = createSlackObject(message);
+            let userLoggedIn = await userService.userIsLoggedIn(user);
+            let channelConflict = await app.getUserChannelConflict(user);
             let slashCommand = _.find(slashCommands, (slash) => {
                 return slash.command == message.command;
             });
             let callback;
-            callback = !userLoggedIn && slashCommand.loginRequired ? requestLogin : slashCommand.callback;
+            if (!userLoggedIn && slashCommand.loginRequired) {
+                callback = requestLogin;
+            }
+            else if (channelConflict && slashCommand.channelConflict) {
+                SlackMessages.botReply(bot, message, 'switch-channels', {action:slashCommand.callback.name})
+            }
+            else {
+                callback = slashCommand.callback;
+            }
             callback(bot, message);
         }
         catch (e) {
@@ -121,7 +137,9 @@ function init(app: App) {
     async function getChannelListeners(bot, message) {
         let channel = await app.getChannel(message);
         let listeners = _.map(await channel.getChannelListeners(), (listener) => {
-            return SlackMessages.linkUsername(listener['username']);
+            if (!_.isNil(listener)) {
+                return SlackMessages.linkUsername(listener['username']);
+            }
         });
         if (listeners.length > 0) {
             bot.replyPrivate(message, "Listening right now: " + _.join(listeners, ', '));
@@ -191,7 +209,10 @@ function init(app: App) {
     async function addDj(bot, message) {
         let user = createSlackObject(message);
         let result = await app.addDj(user);
-        SlackMessages.botReply(bot, message, result, user.context.user.name);
+        SlackMessages.botReply(bot, message, result, {
+            username: user.context.user.name,
+            action: "addDj"
+        });
     }
 
     async function stepDownDj(bot, message) {
@@ -283,6 +304,18 @@ function init(app: App) {
         }
     }
 
+    async function switchChannels(bot, message) {
+        let originalAction = message['actions'][0].value;
+        await app.switchUserChannel(createSlackObject(message), {channel_id:message.channel});
+        let callback = eval(originalAction);
+        try {
+            await callback(bot, message);
+        }
+        catch (e) {
+            console.error(e);
+        }
+    }
+
     /*
        OUTGOING MESSAGES
     */
@@ -297,13 +330,15 @@ function init(app: App) {
         }
     });
 
-    function displayNowPlaying(bot, data) {
-        bot.sendWebhook(
+    async function displayNowPlaying(bot, data) {
+        bot.api.chat.postMessage(
             {
                 ...SlackMessages.NowPlayingMessage(SlackMessages.parseTrack(data.data), data.user),
-                channel: data.channel,
+                channel: '#' + data.channel,
+                as_user:true
             },
             function (err, res) {
+                // console.log(err);
             }
         );
     }
