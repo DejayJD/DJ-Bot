@@ -3,6 +3,19 @@ import * as _ from "lodash";
 export class SlackMessages {
     static spotifyColor = "#1DB954";
 
+    static getSongListMessage(tracks, actions = [], text = null) {
+        let parsedTracks = _.map(tracks, (track) => {
+            return this.parseTrack(track);
+        });
+        let songList = _.map(parsedTracks, (track) => {
+            let trackView = this.getSongView(track);
+            trackView['actions'] = this.getMessageActions(actions, track);
+            return trackView;
+        });
+        return {text:text, "attachments": songList}
+    }
+
+
     static NowPlayingMessage(track, user) {
         return {
             "text": `Now Playing *${track.name}* queued by <@${user.context.user.name}>`,
@@ -14,22 +27,7 @@ export class SlackMessages {
                 "title_link": track.uri,
                 "thumb_url": track.artwork,
                 "callback_id": "add_reaction",
-                "actions": [
-                    {
-                        "name": "boo",
-                        "text": "Boo",
-                        "style": "danger",
-                        "type": "button",
-                        "value": 'thumbsdown'
-                    },
-                    {
-                        "name": "nice",
-                        "text": "Nice Play!",
-                        "style": "primary",
-                        "type": "button",
-                        "value": 'thumbsup'
-                    },
-                ]
+                "actions": this.getMessageActions(['bad-reaction', 'nice-reaction'])
             }]
         }
     }
@@ -86,7 +84,7 @@ Available Commands:
         }
     }
 
-    static AddTrackButton(track) {
+    static getSongView(track) {
         return {
             "fallback": "Song results found",
             "color": this.spotifyColor,
@@ -94,16 +92,7 @@ Available Commands:
             "title": track.name,
             "title_link": track.uri,
             "thumb_url": track.artwork,
-            "callback_id": "add_song_to_queue",
-            "actions": [
-                {
-                    "name": "add_song_to_queue",
-                    "text": "Add to queue",
-                    "style": "primary",
-                    "type": "button",
-                    "value": track.uri
-                }
-            ]
+            "callback_id": "add_song_to_queue"
         }
     }
 
@@ -116,14 +105,7 @@ Available Commands:
                     "callback_id": "spotify_login",
                     "color": this.spotifyColor,
                     "attachment_type": "default",
-                    "actions": [
-                        {
-                            "name": "game",
-                            "text": "Login",
-                            "type": "button",
-                            "value": "login"
-                        }
-                    ]
+                    "actions": this.getMessageActions(['login'])
                 }
             ]
         }
@@ -134,6 +116,10 @@ Available Commands:
 
     static getBotReplyMessage(messageType, data) {
         const botResponse = {
+            "song-list": {
+                message: this.getSongListMessage(data, ['move-song-top'], 'Your upcoming songs:'),
+                type: "private"
+            },
             "added-dj": {
                 message: `${this.linkUsername(data.username)} has become a DJ`,
                 type: "public"
@@ -148,21 +134,15 @@ Available Commands:
             },
             "switch-channels": {
                 message: {
-                    text:"Warning! You are currently active in another channel, are you sure you want to switch channels?",
+                    text: "Warning! You are currently active in another channel, are you sure you want to switch channels?",
                     "attachments": [
                         {
                             "fallback": "Are you sure you want to switch channels?",
                             "callback_id": "switch_channels",
                             "color": this.spotifyColor,
                             "attachment_type": "default",
-                            "actions": [
-                                {
-                                    "name": "switch_channels",
-                                    "text": "Yes, switch channels",
-                                    "type": "button",
-                                    "value": data.action
-                                }
-                            ]
+                            "actions":this.getMessageActions(["switch-channels"], data)
+
                         }
                     ]
                 },
@@ -176,14 +156,17 @@ Available Commands:
         return response;
     }
 
-    static botReply(bot, message, messageType, data :any  = {}) {
+    static botReply(bot, message, messageType, data: any = {}) {
         let botResponse = this.getBotReplyMessage(messageType, data);
+        //switched to an api instead of a bot reply so that the bot doesnt have to be in the room
+
+
         if (botResponse.type === 'public') {
             bot.api.chat.postMessage(
                 {
                     ...botResponse.message,
                     channel: '#' + message.channel_name,
-                    as_user:true
+                    as_user: true
                 },
                 function (err, res) {
                     // console.log(err);
@@ -194,4 +177,47 @@ Available Commands:
             bot.replyPrivate(message, botResponse.message);
         }
     }
+
+    static ActionButton(text, name, style, value = null) {
+        return {
+            "name": name,
+            "text": text,
+            "style": style,
+            "type": "button",
+            "value": value
+        };
+    }
+
+    /*
+        Action types
+            "add-song",
+            "move-song-top",
+            "bad-reaction",
+            "good-reaction",
+     */
+    static getMessageActions(types, data:any = {}) {
+        const actions = {
+            "add-song": this.ActionButton('Add to queue', 'add_song_to_queue', 'primary', data.uri),
+            "move-song-top": this.ActionButton('Move to top of queue', 'move_song_in_queue', 'primary', data.uri),
+            "bad-reaction": this.ActionButton('Boo', 'boo', 'danger', 'thumbsdown'),
+            "nice-reaction": this.ActionButton('Nice Play!', 'nice', 'primary', 'thumbsup'),
+            "login": this.ActionButton("Login", 'login', null, 'login'),
+            "switch-channels":this.ActionButton("Yes, switch channels", "switch_channels", null, data.action)
+        };
+        let finalActions = [];
+        if (!Array.isArray(types)) {
+            types = [types];
+        }
+        for (let actionType of types) {
+            let action = actions[actionType];
+            if (_.isNil(action)) {
+                console.error('Unable to find message action of type = ', actionType);
+            }
+            else {
+                finalActions.push(action);
+            }
+        }
+        return finalActions;
+    }
+
 }

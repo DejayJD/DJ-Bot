@@ -145,6 +145,19 @@ export class App {
         return await channel.addDj(user);
     }
 
+    async getUserQueue(user) {
+        user = await this.userService.getUserByContext(user);
+        let tracks = [];
+        try {
+            tracks = await this.spotifyService.spotifyApi(user, 'getPlaylistTracks', user.playlist_id);
+        }
+        catch (e) {
+            console.error(e);
+            return {message:'error'};
+        }
+        return {message:'song-list', data: tracks};
+    }
+
     async getUserChannelConflict(user) {
         let channel = await this.getChannel({
             channel_id: user.channel.id,

@@ -19,7 +19,7 @@ function init(app: App) {
             url: process.env.SLACK_WEBHOOK
         }
     });
-    
+
     controller.on('bot_channel_join', function (bot, message) {
         //TODO: Create channel if not already existing
         bot.reply(message, "Lets get some tunes going! Need some help using DJ-BOt? Try /dj-help")
@@ -41,7 +41,8 @@ function init(app: App) {
         {command: "/dj-help", callback: getHelpMessage},
         {command: "/dj-suggestion", callback: comingSoon},
         {command: "/listening", callback: getChannelListeners},
-        {command: "/logout", callback: removeUser, loginRequired: true}
+        {command: "/logout", callback: removeUser, loginRequired: true},
+        {command: "/queue", callback: getQueue, loginRequired:true}
     ];
 
     const buttonCommands = {
@@ -169,6 +170,16 @@ function init(app: App) {
 
     }
 
+    async function getQueue(bot, message) {
+        let response = await app.getUserQueue(createSlackObject(message));
+        let data = response.data;
+        if (!_.isNil(data)) {
+            data = _.map(data['body'].items.slice(0, 5), 'track');
+        }
+        SlackMessages.botReply(bot, message, response.message, data);
+
+    }
+
     async function getDjList(bot, message) {
         let channel = await app.getChannel(message);
         let result = await channel.getCurrentDjs();
@@ -237,14 +248,8 @@ function init(app: App) {
                 bot.replyPrivate(message, 'No results found :(');
             }
             else {
-                let slicedResults = searchResults.tracks.items.slice(0, 5);
-                slicedResults = _.map(slicedResults, (track) => {
-                    return SlackMessages.parseTrack(track);
-                });
-                let attachments = _.map(slicedResults, (track) => {
-                    return SlackMessages.AddTrackButton(track)
-                });
-                bot.replyPrivate(message, {'attachments': attachments});
+                let songList = SlackMessages.getSongListMessage(searchResults.tracks.items.slice(0, 5), ['add-song'],'Search results:');
+                bot.replyPrivate(message, songList);
             }
         }
         catch (e) {
