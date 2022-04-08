@@ -1,0 +1,25 @@
+version: "2"
+services:
+  dj-bot:
+    container_name: dj-bot
+    restart: always
+    build: .
+    ports:
+    - "3000:3000"
+    - "3001:3001"
+    - "80:80"
+    volumes:
+    - .:/dist
+    depends_on:
+    - mongo
+    links:
+    - mongo
+  mongo:
+    container_name: mongo
+    image: mongo
+    logging:
+      driver: none
+    volumes:
+    - ./data:/data/db
+    ports:
+    - "27017:27017"

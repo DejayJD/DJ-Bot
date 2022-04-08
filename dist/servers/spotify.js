@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /*
  *  Created By JD.Francis on 9/25/18
@@ -39,6 +47,8 @@ function init(mainApp) {
             'user-library-read',
             'playlist-read-private',
             'playlist-modify-private',
+            'user-top-read',
+            'user-read-recently-played',
             'playlist-modify-public',
             'playlist-read-collaborative',
             'user-read-email',
@@ -57,120 +67,74 @@ function init(mainApp) {
             }));
     });
     app.get('/callback', function (req, res) {
-        // your application requests refresh and access tokens
-        let code = req.query.code || null;
-        let state = req.query.state || null;
-        let storedState = req.cookies ? req.cookies[stateKey] : null;
-        let user_uuid = req.cookies['user_uuid'] || null;
-        let existingUser = userService.getUser({ user_uuid: user_uuid });
-        // after checking the state parameter
-        if (state === null || state !== storedState) {
-            console.error("Unable to auth user, state mismatch!");
-            res.redirect('/#' +
-                querystring.stringify({
-                    error: 'state_mismatch'
-                }));
-        }
-        else if (_.isNil(existingUser)) {
-            console.error("Unable to find user, invalid user_uuid!");
-            res.redirect('/#' +
-                querystring.stringify({
-                    error: 'unable to find user_uuid' + user_uuid
-                }));
-        }
-        {
-            res.clearCookie(stateKey);
-            var authOptions = {
-                url: 'https://accounts.spotify.com/api/token',
-                form: {
-                    code: code,
-                    redirect_uri: process.env.SPOTIFY_REDIRECT,
-                    grant_type: 'authorization_code'
-                },
-                headers: {
-                    'Authorization': 'Basic ' + (new Buffer(process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET).toString('base64'))
-                },
-                json: true
-            };
-            request.post(authOptions, function (error, response, body) {
-                if (!error && response.statusCode === 200) {
-                    let access_token = body.access_token;
-                    let refresh_token = body.refresh_token;
-                    userService.setUserSpotifyCredentials(user_uuid, access_token, refresh_token);
-                    // mainApp.syncUser(user_uuid);
-                    res.status(200).send('Successfully logged in!');
-                }
-                else {
-                    res.redirect('/#' +
-                        querystring.stringify({
-                            error: 'invalid_token'
-                        }));
-                }
-            });
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            // your application requests refresh and access tokens
+            let code = req.query.code || null;
+            let state = req.query.state || null;
+            let storedState = req.cookies ? req.cookies[stateKey] : null;
+            let user_uuid = req.cookies['user_uuid'] || null;
+            let existingUser = yield userService.getUser({ user_uuid: user_uuid });
+            // after checking the state parameter
+            if (state === null || state !== storedState) {
+                console.error("Unable to auth user, state mismatch!");
+                res.redirect('/#' +
+                    querystring.stringify({
+                        error: 'state_mismatch'
+                    }));
+            }
+            else if (_.isNil(existingUser)) {
+                console.error("Unable to find user, invalid user_uuid!");
+                res.redirect('/#' +
+                    querystring.stringify({
+                        error: 'unable to find user_uuid' + user_uuid
+                    }));
+            }
+            {
+                res.clearCookie(stateKey);
+                var authOptions = {
+                    url: 'https://accounts.spotify.com/api/token',
+                    form: {
+                        code: code,
+                        redirect_uri: process.env.SPOTIFY_REDIRECT,
+                        grant_type: 'authorization_code'
+                    },
+                    headers: {
+                        'Authorization': 'Basic ' + (new Buffer(process.env.SPOTIFY_CLIENT_ID + ':' + process.env.SPOTIFY_CLIENT_SECRET).toString('base64'))
+                    },
+                    json: true
+                };
+                request.post(authOptions, function (error, response, body) {
+                    return __awaiter(this, void 0, void 0, function* () {
+                        if (!error && response.statusCode === 200) {
+                            let access_token = body.access_token;
+                            let refresh_token = body.refresh_token;
+                            try {
+                                yield userService.setUserSpotifyCredentials(user_uuid, access_token, refresh_token);
+                                res.status(200).send('Successfully logged in!');
+                            }
+                            catch (e) {
+                                res.redirect('/#' +
+                                    querystring.stringify({
+                                        error: 'Unable to login to spotify. ¯\\_(ツ)_/¯'
+                                    }));
+                            }
+                            // mainApp.syncUser(user_uuid);
+                        }
+                        else {
+                            res.redirect('/#' +
+                                querystring.stringify({
+                                    error: 'invalid_token'
+                                }));
+                        }
+                    });
+                });
+            }
+        });
     });
     app.get('/test', function (req, res) {
         res.status(200).send("Server is working");
     });
-    // TODO: Clean these up
-    // let currentSong = {
-    //     currentUri: null,
-    //     startTime: null
-    // };
-    // app.get('/skip', async function (req, res) {
-    //     try {
-    //         await spotifyApi.skipToNext();
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    //     res.status(200).send("Skipped");
-    // });
-    // app.get('/play', async function (req, res) {
-    //     try {
-    //
-    //         res.status(200).send("Playing");
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    // });
-    // app.get('/funk-dat', async function (req, res) {
-    //     try {
-    //         // let searchResults = await search(searchString);
-    //         let firstTrack = searchResults.tracks.items[0];
-    //         let uri = firstTrack.uri;
-    //         await spotifyApi.play({uris: [uri]});
-    //         currentSong.currentUri = uri;
-    //         currentSong.startTime = new Date();
-    //         res.status(200).send("FUNK DAT");
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    // });
-    // app.get('/pause', async function (req, res) {
-    //     try {
-    //         await spotifyApi.pause();
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    //     res.status(200).send("FUNK DAT");
-    // });
-    // app.get('/current-playback', async function (req, res) {
-    //     try {
-    //         let searchResults = await search(searchString);
-    //         let firstTrack = searchResults.tracks.items[0];
-    //         await spotifyApi.play();
-    //         // spotifyApi.transferMyPlayback()
-    //     }
-    //     catch (e) {
-    //         res.status(500).send(e);
-    //     }
-    //     res.status(200).send("FUNK DAT");
-    // });
     app.listen(port, () => console.log(`User login server listening on port ${port}!`));
 }
 module.exports = init;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic3BvdGlmeS5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy9zZXJ2ZXJzL3Nwb3RpZnkudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7QUFBQTs7OztHQUlHO0FBQ0gsOENBQTZDO0FBQzdDLG1DQUFrQztBQUNsQywyQ0FBMEM7QUFDMUMsNEJBQTRCO0FBQzVCLG1DQUFrQztBQUNsQywrREFBbUQ7QUFDbkQseURBQW9EO0FBRXBELFlBQVk7QUFDWixNQUFNLEdBQUcsR0FBRyxPQUFPLEVBQUUsQ0FBQztBQUN0QixHQUFHLENBQUMsR0FBRyxDQUFDLFlBQVksRUFBRSxDQUFDLENBQUM7QUFDeEIsTUFBTSxJQUFJLEdBQUcsSUFBSSxDQUFDO0FBRWxCLFNBQVMsSUFBSSxDQUFFLE9BQU87SUFDbEIsSUFBSSxRQUFRLEdBQUcsb0JBQW9CLENBQUM7SUFDcEMsSUFBSSxXQUFXLEdBQUcsd0JBQU8sQ0FBQyxVQUFVLENBQUMseUJBQVcsQ0FBQyxDQUFDO0lBRWxELFNBQVMsb0JBQW9CLENBQUMsTUFBTTtRQUNoQyxJQUFJLElBQUksR0FBRyxFQUFFLENBQUM7UUFDZCxJQUFJLFFBQVEsR0FBRyxnRUFBZ0UsQ0FBQztRQUVoRixLQUFLLElBQUksQ0FBQyxHQUFHLENBQUMsRUFBRSxDQUFDLEdBQUcsTUFBTSxFQUFFLENBQUMsRUFBRSxFQUFFO1lBQzdCLElBQUksSUFBSSxRQUFRLENBQUMsTUFBTSxDQUFDLElBQUksQ0FBQyxLQUFLLENBQUMsSUFBSSxDQUFDLE1BQU0sRUFBRSxHQUFHLFFBQVEsQ0FBQyxNQUFNLENBQUMsQ0FBQyxDQUFDO1NBQ3hFO1FBQ0QsT0FBTyxJQUFJLENBQUM7SUFDaEIsQ0FBQztJQUFBLENBQUM7SUFJRixHQUFHLENBQUMsR0FBRyxDQUFDLFFBQVEsRUFBRSxVQUFVLEdBQUcsRUFBRSxHQUFHO1FBQ2hDLElBQUksS0FBSyxHQUFHLG9CQUFvQixDQUFDLEVBQUUsQ0FBQyxDQUFDO1FBQ3JDLEdBQUcsQ0FBQyxN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
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoic3BvdGlmeS5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uLy4uL3NyYy9zZXJ2ZXJzL3Nwb3RpZnkudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7OztBQUFBOzs7O0dBSUc7QUFDSCw4Q0FBNkM7QUFDN0MsbUNBQWtDO0FBQ2xDLDJDQUEwQztBQUMxQyw0QkFBNEI7QUFDNUIsbUNBQWtDO0FBQ2xDLCtEQUFtRDtBQUNuRCx5REFBb0Q7QUFFcEQsWUFBWTtBQUNaLE1BQU0sR0FBRyxHQUFHLE9BQU8sRUFBRSxDQUFDO0FBQ3RCLEdBQUcsQ0FBQyxHQUFHLENBQUMsWUFBWSxFQUFFLENBQUMsQ0FBQztBQUN4QixNQUFNLElBQUksR0FBRyxJQUFJLENBQUM7QUFFbEIsU0FBUyxJQUFJLENBQUMsT0FBTztJQUNqQixJQUFJLFFBQVEsR0FBRyxvQkFBb0IsQ0FBQztJQUNwQyxJQUFJLFdBQVcsR0FBRyx3QkFBTyxDQUFDLFVBQVUsQ0FBQyx5QkFBVyxDQUFDLENBQUM7SUFFbEQsU0FBUyxvQkFBb0IsQ0FBQyxNQUFNO1FBQ2hDLElBQUksSUFBSSxHQUFHLEVBQUUsQ0FBQztRQUNkLElBQUksUUFBUSxHQUFHLGdFQUFnRSxDQUFDO1FBRWhGLEtBQUssSUFBSSxDQUFDLEdBQUcsQ0FBQyxFQUFFLENBQUMsR0FBRyxNQUFNLEVBQUUsQ0FBQyxFQUFFLEVBQUU7WUFDN0IsSUFBSSxJQUFJLFFBQVEsQ0FBQyxNQUFNLENBQUMsSUFBSSxDQUFDLEtBQUssQ0FBQyxJQUFJLENBQUMsTUFBTSxFQUFFLEdBQUcsUUFBUSxDQUFDLE1BQU0sQ0FBQyxDQUFDLENBQUM7U0FDeEU7UUFDRCxPQUFPLElBQUksQ0FBQztJQUNoQixDQUFDO0lBQUEsQ0FBQztJQUdGLEdBQUcsQ0FBQyxHQUFHLENBQUMsUUFBUSxFQUFFLFVBQVUsR0FBRyxFQUFFLEdBQUc7UUFDaEMsSUFBSSxLQUFLLEdBQUcsb0JBQW9CLENBQUMsRUFBRSxDQUFDLENBQUM7UUFDckMsR0FBRyxDQUFDLE1BQU0sQ0FBQyxRQUFRLEVBQUUsS0FBSyxDQUFDLENBQUM7UUFDNUIsR0FBRyxDQUFDLE1BQU0sQ0FBQyxXQUFXLEVBQUUsR0FBRyxDQUFDLEtBQUssQ0FBQyxXQUFXLENBQUMsQ0FBQyxDQUFDO1FBRWhELGdEQUFnRDtRQUNoRCwyRUFBMkU7UUFDM0UsSUFBSSxNQUFNLEdBQUc7WUFDVCxtQkFBbUI7WUFDbkIsbUJBQW1CO1lBQ25CLHVCQUF1QjtZQUN2Qix5QkFBeUI7WUFDekIsZUFBZTtZQUNmLDJCQUEyQjtZQUMzQix3QkFBd0I7WUFDeEIsNkJBQTZCO1lBQzdCLGlCQUFpQjtZQUNqQiwwQkFBMEI7WUFDMUIsV0FBVztZQUNYLDRCQUE0QjtTQUMvQixDQUFDO1FBQ0YsSUFBSSxLQUFLLEdBQUcsQ0FBQyxDQUFDLElBQUksQ0FBQyxNQUFNLEVBQUUsR0FBRyxDQUFDLENBQUM7UUFDaEMsR0FBRyxDQUFDLFFBQVEsQ0FBQyx5Q0FBeUM7WUFDbEQsV0FBVyxDQUFDLFNBQVMsQ0FBQztnQkFDbEIsYUFBYSxFQUFFLE1BQU07Z0JBQ3JCLFNBQVMsRUFBRSxPQUFPLENBQUMsR0FBRyxDQUFDLGlCQUFpQjtnQkFDeEMsS0FBSyxFQUFFLEtBQUs7Z0JBQ1osWUFBWSxFQUFFLE9BQU8sQ0FBQyxHQUFHLENBQUMsZ0JBQWdCO2dCQUMxQyxLQUFLLEVBQUUsS0FBSzthQUNmLENBQUMsQ0FBQyxDQUFDO0lBR1osQ0FBQyxDQUFDLENBQUM7SUFDSCxHQUFHLENBQUMsR0FBRyxDQUFDLFdBQVcsRUFBRSxVQUFnQixHQUFHLEVBQUUsR0FBRzs7WUFDekMsc0RBQXNEO1lBQ3RELElBQUksSUFBSSxHQUFHLEdBQUcsQ0FBQyxLQUFLLENBQUMsSUFBSSxJQUFJLElBQUksQ0FBQztZQUVsQyxJQUFJLEtBQUssR0FBRyxHQUFHLENBQUMsS0FBSyxDQUFDLEtBQUssSUFBSSxJQUFJLENBQUM7WUFDcEMsSUFBSSxXQUFXLEdBQUcsR0FBRyxDQUFDLE9BQU8sQ0FBQyxDQUFDLENBQUMsR0FBRyxDQUFDLE9BQU8sQ0FBQyxRQUFRLENBQUMsQ0FBQyxDQUFDLENBQUMsSUFBSSxDQUFDO1lBQzdELElBQUksU0FBUyxHQUFHLEdBQUcsQ0FBQyxPQUFPLENBQUMsV0FBVyxDQUFDLElBQUksSUFBSSxDQUFDO1lBQ2pELElBQUksWUFBWSxHQUFHLE1BQU0sV0FBVyxDQUFDLE9BQU8sQ0FBQyxFQUFDLFNBQVMsRUFBRSxTQUFTLEVBQUMsQ0FBQyxDQUFDO1lBRXJFLHFDQUFxQztZQUVyQyxJQUFJLEtBQUssS0FBSyxJQUFJLElBQUksS0FBSyxLQUFLLFdBQVcsRUFBRTtnQkFDekMsT0FBTyxDQUFDLEtBQUssQ0FBQyxzQ0FBc0MsQ0FBQyxDQUFDO2dCQUN0RCxHQUFHLENBQUMsUUFBUSxDQUFDLElBQUk7b0JBQ2IsV0FBVyxDQUFDLFNBQVMsQ0FBQzt3QkFDbEIsS0FBSyxFQUFFLGdCQUFnQjtxQkFDMUIsQ0FBQyxDQUFDLENBQUM7YUFDWDtpQkFBTSxJQUFJLENBQUMsQ0FBQyxLQUFLLENBQUMsWUFBWSxDQUFDLEVBQUU7Z0JBQzlCLE9BQU8sQ0FBQyxLQUFLLENBQUMseUNBQXlDLENBQUMsQ0FBQztnQkFDekQsR0FBRyxDQUFDLFFBQVEsQ0FBQyxJQUFJO29CQUNiLFdBQVcsQ0FBQyxTQUFTLENBQUM7d0JBQ2xCLEtBQUssRUFBRSwwQkFBMEIsR0FBRyxTQUFTO3FCQUNoRCxDQUFDLENBQUMsQ0FBQzthQUNYO1lBQ0Q7Z0JBQ0ksR0FBRyxDQUFDLFdBQVcsQ0FBQyxRQUFRLENBQUMsQ0FBQztnQkFDMUIsSUFBSSxXQUFXLEdBQUc7b0JBQ2QsR0FBRyxFQUFFLHdDQUF3QztvQkFDN0MsSUFBSSxFQUFFO3dCQUNGLElBQUksRUFBRSxJQUFJO3dCQUNWLFlBQVksRUFBRSxPQUFPLENBQUMsR0FBRyxDQUFDLGdCQUFnQjt3QkFDMUMsVUFBVSxFQUFFLG9CQUFvQjtxQkFDbkM7b0JBQ0QsT0FBTyxFQUFFO3dCQUNMLGVBQWUsRUFBRSxRQUFRLEdBQUcsQ0FBQyxJQUFJLE1BQU0sQ0FBQyxPQUFPLENBQUMsR0FBRyxDQUFDLGlCQUFpQixHQUFHLEdBQUcsR0FBRyxPQUFPLENBQUMsR0FBRyxDQUFDLHFCQUFxQixDQUFDLENBQUMsUUFBUSxDQUFDLFFBQVEsQ0FBQyxDQUFDO3FCQUN2STtvQkFDRCxJQUFJLEVBQUUsSUFBSTtpQkFDYixDQUFDO2dCQUNGLE9BQU8sQ0FBQyxJQUFJLENBQUMsV0FBVyxFQUFFLFVBQWdCLEtBQUssRUFBRSxRQUFRLEVBQUUsSUFBSTs7d0JBQzNELElBQUksQ0FBQyxLQUFLLElBQUksUUFBUSxDQUFDLFVBQVUsS0FBSyxHQUFHLEVBQUU7NEJBRXZDLElBQUksWUFBWSxHQUFHLElBQUksQ0FBQyxZQUFZLENBQUM7NEJBQ3JDLElBQUksYUFBYSxHQUFHLElBQUksQ0FBQyxhQUFhLENBQUM7NEJBQ3ZDLElBQUk7Z0NBQ0EsTUFBTSxXQUFXLENBQUMseUJBQXlCLENBQUMsU0FBUyxFQUFFLFlBQVksRUFBRSxhQUFhLENBQUMsQ0FBQztnQ0FDcEYsR0FBRyxDQUFDLE1BQU0sQ0FBQyxHQUFHLENBQUMsQ0FBQyxJQUFJLENBQUMseUJBQXlCLENBQUMsQ0FBQTs2QkFDbEQ7NEJBQ0QsT0FBTyxDQUFDLEVBQUU7Z0NBQ04sR0FBRyxDQUFDLFFBQVEsQ0FBQyxJQUFJO29DQUNiLFdBQVcsQ0FBQyxTQUFTLENBQUM7d0NBQ2xCLEtBQUssRUFBRSx3Q0FBd0M7cUNBQ2xELENBQUMsQ0FBQyxDQUFDOzZCQUNYOzRCQUNELCtCQUErQjt5QkFDbEM7NkJBQU07NEJBQ0gsR0FBRyxDQUFDLFFBQVEsQ0FBQyxJQUFJO2dDQUNiLFdBQVcsQ0FBQyxTQUFTLENBQUM7b0NBQ2xCLEtBQUssRUFBRSxlQUFlO2lDQUN6QixDQUFDLENBQUMsQ0FBQzt5QkFDWDtvQkFDTCxDQUFDO2lCQUFBLENBQUMsQ0FBQzthQUNOO1FBQ0wsQ0FBQztLQUFBLENBQUMsQ0FBQztJQUNILEdBQUcsQ0FBQyxHQUFHLENBQUMsT0FBTyxFQUFFLFVBQVUsR0FBRyxFQUFFLEdBQUc7UUFDL0IsR0FBRyxDQUFDLE1BQU0sQ0FBQyxHQUFHLENBQUMsQ0FBQyxJQUFJLENBQUMsbUJBQW1CLENBQUMsQ0FBQztJQUM5QyxDQUFDLENBQUMsQ0FBQztJQUVILEdBQUcsQ0FBQyxNQUFNLENBQUMsSUFBSSxFQUFFLEdBQUcsRUFBRSxDQUFDLE9BQU8sQ0FBQyxHQUFHLENBQUMsdUNBQXVDLElBQUksR0FBRyxDQUFDLENBQUMsQ0FBQztBQUN4RixDQUFDO0FBRUQsTUFBTSxDQUFDLE9BQU8sR0FBRyxJQUFJLENBQUMifQ==

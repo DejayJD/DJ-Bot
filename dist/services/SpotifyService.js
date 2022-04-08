@@ -8,30 +8,62 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const SpotifyWebApi = require("spotify-web-api-node");
-const _ = require("lodash");
+const SpotifyWebApi = require("../../spotify-web-api-node");
 class SpotifyService {
     constructor(userService) {
         this.userService = userService;
-        this.spotifyApi = new SpotifyWebApi({
+        this.spotifyApiObj = new SpotifyWebApi({
             clientId: process.env.SPOTIFY_CLIENT_ID,
             clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
             redirectUri: process.env.SPOTIFY_REDIRECT
         });
     }
-    setAccessToken(user) {
-        this.spotifyApi.setAccessToken(user['access_token']);
-        this.spotifyApi.setRefreshToken(user['refresh_token']);
-    }
-    addToUserPlaylist(userId, trackData, context) {
+    spotifyApi(user, method, ...params) {
         return __awaiter(this, void 0, void 0, function* () {
-            let user = _.find(this.userService.users, (data) => {
-                return data['context']['user']['id'] === userId && data['context']['type'] == context;
-            });
-            this.setAccessToken(user);
+            this.spotifyApiObj.setAccessToken(user['access_token']);
+            try {
+                let data = yield this.spotifyApiObj[method](...params);
+                return data;
+            }
+            catch (e) {
+                // If the error is caused by a 401, its probably cause token expired.
+                // This tries refreshing and then attempting again
+                // If that also fails it errors out completely
+                if (e.statusCode === 401 && user['refresh_token'] != null) {
+                    this.spotifyApiObj.setRefreshToken(user['refresh_token']);
+                    try {
+                        let newToken = (yield this.spotifyApiObj.refreshAccessToken()).body.access_token;
+                        this.userService.updateUser(user, { access_token: newToken });
+                        this.spotifyApiObj.setAccessToken(newToken);
+                        let data = yield this.spotifyApiObj[method](...params);
+                        return data;
+                    }
+                    catch (e2) {
+                        console.error(e2);
+                        console.error('Unable to refresh token and call method again. Userdata = ');
+                        console.error(user);
+                    }
+                }
+                if (e.statusCode === 403) {
+                    return 'not-premium';
+                }
+                if (e.statusCode === 404) {
+                    return 'spotify-issue';
+                }
+                console.error(e);
+            }
+        });
+    }
+    setAccessToken(user) {
+        this.spotifyApiObj.setAccessToken(user['access_token']);
+        this.spotifyApiObj.setRefreshToken(user['refresh_token']);
+    }
+    addToUserPlaylist(user, trackData) {
+        return __awaiter(this, void 0, void 0, function* () {
+            user = yield this.userService.getUser(user, 'context');
             let playlist_id = user['playlist_id'];
             try {
-                yield this.spotifyApi.addTracksToPlaylist(playlist_id, [trackData['value']]);
+                yield this.spotifyApi(user, 'addTracksToPlaylist', playlist_id, [trackData['value']], { position: 0 });
             }
             catch (e) {
                 console.error("Unable to add track to playlist user=");
@@ -42,4 +74,4 @@ class SpotifyService {
     }
 }
 exports.SpotifyService = SpotifyService;
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiU3BvdGlmeVNlcnZpY2UuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvc2VydmljZXMvU3BvdGlmeVNlcnZpY2UudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7OztBQUFBLHNEQUFxRDtBQUNyRCw0QkFBNEI7QUFHNUIsTUFBYSxjQUFjO0lBR3ZCLFlBQVksV0FBd0I7UUFDaEMsSUFBSSxDQUFDLFdBQVcsR0FBRyxXQUFXLENBQUM7UUFDL0IsSUFBSSxDQUFDLFVBQVUsR0FBRyxJQUFJLGFBQWEsQ0FBQztZQUNoQyxRQUFRLEVBQUUsT0FBTyxDQUFDLEdBQUcsQ0FBQyxpQkFBaUI7WUFDdkMsWUFBWSxFQUFFLE9BQU8sQ0FBQyxHQUFHLENBQUMscUJBQXFCO1lBQy9DLFdBQVcsRUFBRSxPQUFPLENBQUMsR0FBRyxDQUFDLGdCQUFnQjtTQUM1QyxDQUFDLENBQUM7SUFDUCxDQUFDO0lBRUQsY0FBYyxDQUFDLElBQUk7UUFDZixJQUFJLENBQUMsVUFBVSxDQUFDLGNBQWMsQ0FBQyxJQUFJLENBQUMsY0FBYyxDQUFDLENBQUMsQ0FBQztRQUNyRCxJQUFJLENBQUMsVUFBVSxDQUFDLGVBQWUsQ0FBQyxJQUFJLENBQUMsZUFBZSxDQUFDLENBQUMsQ0FBQztJQUMzRCxDQUFDO0lBRUssaUJBQWlCLENBQUMsTUFBTSxFQUFFLFNBQVMsRUFBRSxPQUFPOztZQUM5QyxJQUFJLElBQUksR0FBRyxDQUFDLENBQUMsSUFBSSxDQUFDLElBQUksQ0FBQyxXQUFXLENBQUMsS0FBSyxFQUFFLENBQUMsSUFBSSxFQUFFLEVBQUU7Z0JBQy9DLE9BQU8sSUFBSSxDQUFDLFNBQVMsQ0FBQyxDQUFDLE1BQU0sQ0FBQyxDQUFDLElBQUksQ0FBQyxLQUFLLE1BQU0sSUFBSSxJQUFJLENBQUMsU0FBUyxDQUFDLENBQUMsTUFBTSxDQUFDLElBQUksT0FBTyxDQUFDO1lBQzFGLENBQUMsQ0FBQyxDQUFDO1lBQ0gsSUFBSSxDQUFDLGNBQWMsQ0FBQyxJQUFJLENBQUMsQ0FBQztZQUMxQixJQUFJLFdBQVcsR0FBRyxJQUFJLENBQUMsYUFBYSxDQUFDLENBQUM7WUFDdEMsSUFBSTtnQkFDQSxNQUFNLElBQUksQ0FBQyxVQUFVLENBQUMsbUJBQW1CLENBQUMsV0FBVyxFQUFFLENBQUMsU0FBUyxDQUFDLE9BQU8sQ0FBQyxDQUFDLENBQUMsQ0FBQzthQUNoRjtZQUNELE9BQU8sQ0FBQyxFQUFFO2dCQUNOLE9BQU8sQ0FBQyxLQUFLLENBQUMsdUNBQXVDLENBQUMsQ0FBQztnQkFDdkQsT0FBTyxDQUFDLEtBQUssQ0FBQyxJQUFJLENBQUMsQ0FBQztnQkFDcEIsT0FBTyxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQzthQUNwQjtRQUNMLENBQUM7S0FBQTtDQUNKO0FBaENELHdDQWdDQyJ9
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiU3BvdGlmeVNlcnZpY2UuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyIuLi8uLi9zcmMvc2VydmljZXMvU3BvdGlmeVNlcnZpY2UudHMiXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6Ijs7Ozs7Ozs7OztBQUFBLDREQUE0RDtBQUs1RCxNQUFhLGNBQWM7SUFJdkIsWUFBWSxXQUF3QjtRQUNoQyxJQUFJLENBQUMsV0FBVyxHQUFHLFdBQVcsQ0FBQztRQUMvQixJQUFJLENBQUMsYUFBYSxHQUFHLElBQUksYUFBYSxDQUFDO1lBQ25DLFFBQVEsRUFBRSxPQUFPLENBQUMsR0FBRyxDQUFDLGlCQUFpQjtZQUN2QyxZQUFZLEVBQUUsT0FBTyxDQUFDLEdBQUcsQ0FBQyxxQkFBcUI7WUFDL0MsV0FBVyxFQUFFLE9BQU8sQ0FBQyxHQUFHLENBQUMsZ0JBQWdCO1NBQzVDLENBQUMsQ0FBQztJQUNQLENBQUM7SUFFSyxVQUFVLENBQUMsSUFBSSxFQUFFLE1BQU0sRUFBRSxHQUFHLE1BQU07O1lBQ3BDLElBQUksQ0FBQyxhQUFhLENBQUMsY0FBYyxDQUFDLElBQUksQ0FBQyxjQUFjLENBQUMsQ0FBQyxDQUFDO1lBQ3hELElBQUk7Z0JBQ0EsSUFBSSxJQUFJLEdBQUcsTUFBTSxJQUFJLENBQUMsYUFBYSxDQUFDLE1BQU0sQ0FBQyxDQUFDLEdBQUcsTUFBTSxDQUFDLENBQUM7Z0JBQ3ZELE9BQU8sSUFBSSxDQUFDO2FBQ2Y7WUFDRCxPQUFPLENBQUMsRUFBRTtnQkFDTixxRUFBcUU7Z0JBQ3JFLGtEQUFrRDtnQkFDbEQsOENBQThDO2dCQUM5QyxJQUFJLENBQUMsQ0FBQyxVQUFVLEtBQUssR0FBRyxJQUFJLElBQUksQ0FBQyxlQUFlLENBQUMsSUFBSSxJQUFJLEVBQUU7b0JBQ3ZELElBQUksQ0FBQyxhQUFhLENBQUMsZUFBZSxDQUFDLElBQUksQ0FBQyxlQUFlLENBQUMsQ0FBQyxDQUFDO29CQUMxRCxJQUFJO3dCQUNBLElBQUksUUFBUSxHQUFHLENBQUMsTUFBTSxJQUFJLENBQUMsYUFBYSxDQUFDLGtCQUFrQixFQUFFLENBQUMsQ0FBQyxJQUFJLENBQUMsWUFBWSxDQUFDO3dCQUNqRixJQUFJLENBQUMsV0FBVyxDQUFDLFVBQVUsQ0FBQyxJQUFJLEVBQUUsRUFBQyxZQUFZLEVBQUMsUUFBUSxFQUFDLENBQUMsQ0FBQzt3QkFDM0QsSUFBSSxDQUFDLGFBQWEsQ0FBQyxjQUFjLENBQUMsUUFBUSxDQUFDLENBQUM7d0JBQzVDLElBQUksSUFBSSxHQUFHLE1BQU0sSUFBSSxDQUFDLGFBQWEsQ0FBQyxNQUFNLENBQUMsQ0FBQyxHQUFHLE1BQU0sQ0FBQyxDQUFDO3dCQUN2RCxPQUFPLElBQUksQ0FBQztxQkFDZjtvQkFDRCxPQUFPLEVBQUUsRUFBRTt3QkFDUCxPQUFPLENBQUMsS0FBSyxDQUFDLEVBQUUsQ0FBQyxDQUFDO3dCQUNsQixPQUFPLENBQUMsS0FBSyxDQUFDLDREQUE0RCxDQUFDLENBQUM7d0JBQzVFLE9BQU8sQ0FBQyxLQUFLLENBQUMsSUFBSSxDQUFDLENBQUM7cUJBQ3ZCO2lCQUNKO2dCQUNELElBQUksQ0FBQyxDQUFDLFVBQVUsS0FBSyxHQUFHLEVBQUU7b0JBQ3RCLE9BQU8sYUFBYSxDQUFDO2lCQUN4QjtnQkFDRCxJQUFJLENBQUMsQ0FBQyxVQUFVLEtBQUssR0FBRyxFQUFFO29CQUN0QixPQUFPLGVBQWUsQ0FBQztpQkFDMUI7Z0JBQ0QsT0FBTyxDQUFDLEtBQUssQ0FBQyxDQUFDLENBQUMsQ0FBQzthQUNwQjtRQUNMLENBQUM7S0FBQTtJQUVELGNBQWMsQ0FBQyxJQUFJO1FBQ2YsSUFBSSxDQUFDLGFBQWEsQ0FBQyxjQUFjLENBQUMsSUFBSSxDQUFDLGNBQWMsQ0FBQyxDQUFDLENBQUM7UUFDeEQsSUFBSSxDQUFDLGFBQWEsQ0FBQyxlQUFlLENBQUMsSUFBSSxDQUFDLGVBQWUsQ0FBQyxDQUFDLENBQUM7SUFDOUQsQ0FBQztJQUVLLGlCQUFpQixDQUFDLElBQUksRUFBRSxTQUFTOztZQUNuQyxJQUFJLEdBQUcsTUFBTSxJQUFJLENBQUMsV0FBVyxDQUFDLE9BQU8sQ0FBQyxJQUFJLEVBQUUsU0FBUyxDQUFDLENBQUM7WUFDdkQsSUFBSSxXQUFXLEdBQUcsSUFBSSxDQUFDLGFBQWEsQ0FBQyxDQUFDO1lBQ3RDLElBQUk7Z0JBQ0EsTUFBTSxJQUFJLENBQUMsVUFBVSxDQUFDLElBQUksRUFBRSxxQkFBcUIsRUFBRSxXQUFXLEVBQUUsQ0FBQyxTQUFTLENBQUMsT0FBTyxDQUFDLENBQUMsRUFBRSxFQUFDLFFBQVEsRUFBRSxDQUFDLEVBQUMsQ0FBQyxDQUFBO2FBQ3ZHO1lBQ0QsT0FBTyxDQUFDLEVBQUU7Z0JBQ04sT0FBTyxDQUFDLEtBQUssQ0FBQyx1Q0FBdUMsQ0FBQyxDQUFDO2dCQUN2RCxPQUFPLENBQUMsS0FBSyxDQUFDLElBQUksQ0FBQyxDQUFDO2dCQUNwQixPQUFPLENBQUMsS0FBSyxDQUFDLENBQUMsQ0FBQyxDQUFDO2FBQ3BCO1FBQ0wsQ0FBQztLQUFBO0NBQ0o7QUFqRUQsd0NBaUVDIn0=
